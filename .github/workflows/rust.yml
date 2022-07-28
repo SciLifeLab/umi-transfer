@@ -1,0 +1,21 @@
+name: Rust
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: stable
+          override: true
+          target: wasm32-unknown-unknown
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build --release
