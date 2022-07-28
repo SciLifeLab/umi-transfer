@@ -1,0 +1,55 @@
+name: Publish to Dockerhub
+
+on:
+  push:
+    branches:
+      - main
+      - 'releases/**'
+      - AddCIpipelines
+    tags:
+      - 'v*' #if a push with a version tag like v0.0.2 is recorded
+
+  release:
+    types: [published]
+
+jobs:
+  push_to_registry:
+    if: github.repository == 'SciLifeLab/umi-transfer'
+    name: Push Docker image to Docker Hub / GitHub Docker Registry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push dev image
+        uses: docker/build-push-action@v2
+        if: github.event_name == 'push'
+        with:
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/umi-transfer:dev
+            ghcr.io/${{ github.repository_owner }}/umi-transfer:dev
+            
+      - name: Push release image
+        uses: docker/build-push-action@v2
+        if: github.event_name == 'release'
+        with:
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/umi-transfer:${{ github.event.release.tag_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/umi-transfer:latest
+            ghcr.io/${{ github.repository_owner }}/umi-transfer-rs:${{ github.event.release.tag_name }}
+            ghcr.io/${{ github.repository_owner }}/umi-transfer-rs:latest
