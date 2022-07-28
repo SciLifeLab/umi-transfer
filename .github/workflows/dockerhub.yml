@@ -21,6 +21,10 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v2
 
+      - name: Change repo name to lowercase
+        run: |
+          echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -41,7 +45,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/umi-transfer:dev
-            ghcr.io/${{ github.repository_owner }}/umi-transfer:dev
+            ghcr.io/${{ env.REPO_LOWERCASE }}:dev
             
       - name: Push release image
         uses: docker/build-push-action@v2
@@ -51,5 +55,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/umi-transfer:${{ github.event.release.tag_name }}
             ${{ secrets.DOCKERHUB_USERNAME }}/umi-transfer:latest
-            ghcr.io/${{ github.repository_owner }}/umi-transfer-rs:${{ github.event.release.tag_name }}
-            ghcr.io/${{ github.repository_owner }}/umi-transfer-rs:latest
+            ghcr.io/${{ env.REPO_LOWERCASE }}:${{ github.event.release.tag_name }}
+            ghcr.io/${{ env.REPO_LOWERCASE }}:${{ github.sha }}
+            ghcr.io/${{ env.REPO_LOWERCASE }}:latest
