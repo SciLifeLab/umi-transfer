@@ -1,4 +1,4 @@
-name: Rust
+name: Test successful compilation on Rust
 
 on: [push]
 
