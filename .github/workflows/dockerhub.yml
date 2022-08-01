@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - dev
       - 'releases/**'
       - AddCIpipelines
     tags:
@@ -17,25 +16,14 @@ jobs:
   push_to_registry:
     if: github.repository == 'SciLifeLab/umi-transfer'
     name: Push Docker image to Docker Hub / GitHub Docker Registry
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            label: ubuntu-20.04
-          - os: macos-latest
-            label: macos-11
-          - os: windows-latest
-            label: windows-2022
+    runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
 
       - name: Change repo name to lowercase
         run: |
-          REPO_LOWERCASE="scilifelab/umi-transfer" 
-          echo $REPO_LOWERCASE >>${GITHUB_ENV}
-      #    echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}  #doesn't work on MacOS or Windows
+          echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
@@ -58,7 +46,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/umi-transfer:dev
             ghcr.io/${{ env.REPO_LOWERCASE }}:dev
-          labels: ${{ matrix.label }}
             
       - name: Push release image
         uses: docker/build-push-action@v2
@@ -71,4 +58,3 @@ jobs:
             ghcr.io/${{ env.REPO_LOWERCASE }}:${{ github.event.release.tag_name }}
             ghcr.io/${{ env.REPO_LOWERCASE }}:${{ github.sha }}
             ghcr.io/${{ env.REPO_LOWERCASE }}:latest
-          labels: ${{ matrix.label }}
