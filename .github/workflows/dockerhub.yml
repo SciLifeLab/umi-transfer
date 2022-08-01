@@ -33,7 +33,8 @@ jobs:
 
       - name: Change repo name to lowercase
         run: |
-          echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+          echo "REPO_LOWERCASE='scilifelab/umi-transfer'" >>${GITHUB_ENV}
+      #    echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}  #doesn't work on MacOS or Windows
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
