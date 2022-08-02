@@ -6,7 +6,7 @@ Go to the directory with the tool and type in `cargo build` .
 
 ### Usage
 
-The tool requires and input as follows:
+The tool requires an input as follows:
 
 > `umi-transfer [OPTIONS] <SUBCOMMAND> `<br>
 
@@ -22,10 +22,10 @@ The tool requires and input as follows:
 
 > `inline:`
 >
-> > | Flag         |         Required         |                Description |
-> > | ------------ | :----------------------: | -------------------------: |
-> > | `--pattern1` |           Yes            | Nucleotide Pattern for UMI |
-> > | `--pattern2` | No, needed for `--r2-in` | Nucleotide Pattern for UMI |
+> > | Flag         |          Required          |                Description |
+> > | ------------ | :------------------------: | -------------------------: |
+> > | `--pattern1` |            Yes             | Nucleotide Pattern for UMI |
+> > | `--pattern2` | Needed if `--r2-in` exists | Nucleotide Pattern for UMI |
 >
 > `separate:`
 >
@@ -37,8 +37,8 @@ Running the tool can be done by `cargo run --release -- [options] --r1-in 'fastq
 
 ### Inline UMI extraction example:
 
-`cargo run --release -- --prefix output --r1-in 'R1.fastq' --r2-in 'R2.fastq' inline --pattern1 'NNNNNNNNN' --pattern2 'NNNNNNNNN'`
+`cargo run --release -- --prefix 'output' --r1-in 'R1.fastq' --r2-in 'R2.fastq' inline --pattern1 'NNNNNNNNN' --pattern2 'NNNNNNNNN'`
 
-## UMI in seperate file:
+### UMI in seperate file example:
 
-`cargo run -- release -- --prefix output --r1-in 'R1.fastq' --r2-in 'R3.fastq' separate --ru-in 'R2.fastq'`
+`cargo run --release -- --prefix 'output' --r1-in 'R1.fastq' --r2-in 'R3.fastq' separate --ru-in 'R2.fastq'`
