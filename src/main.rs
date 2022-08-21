@@ -1,4 +1,5 @@
 use clap::Parser;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::iter::Iterator;
 use std::thread;
 
@@ -127,15 +128,28 @@ fn main() {
 
     // read supplied files
     let r1 = read_fastq(&args.r1_in[0]).records();
+    // Settings for progress bar
+    let len = read_fastq(&args.r1_in[0]).records().count();
+    let m = MultiProgress::new();
+    let style = ProgressStyle::with_template("[{elapsed_precise}] {bar:60} {pos:>7}/{len:7} {msg}")
+        .unwrap();
+    let pb = m.add(ProgressBar::new(len.try_into().unwrap()));
+    pb.set_style(style.clone());
+    let pb2 = m.insert_after(&pb, ProgressBar::new(len.try_into().unwrap()));
+    pb2.set_style(style.clone());
+    println!("[1/1] Transfering UMI to records...");
     match args.sub {
         Commands::Separate { ru_in } => {
             let ru1 = ru_in.clone();
             let handle1 = thread::spawn(move || {
                 let ru = read_fastq(&ru_in[0]).records();
                 for (r1_rec, ru_rec) in r1.zip(ru) {
+                    pb.set_message("R1");
+                    pb.inc(1);
                     write_file_r1 =
                         write_to_file(r1_rec.unwrap(), write_file_r1, ru_rec.unwrap().seq(), false);
                 }
+                pb.finish_with_message("R1 done");
             });
             let mut l = Vec::new();
             l.push(handle1);
@@ -144,7 +158,10 @@ fn main() {
                 let mut write_file_r2 = output_file(&format!("{}2", &args.prefix));
                 let handle2 = thread::spawn(move || {
                     let ru = read_fastq(&ru1[0]).records();
+                    pb2.set_position(0);
                     for (r2_rec, ru_rec) in r2.zip(ru) {
+                        pb2.set_message("R2");
+                        pb2.inc(1);
                         write_file_r2 = write_to_file(
                             r2_rec.unwrap(),
                             write_file_r2,
@@ -152,8 +169,11 @@ fn main() {
                             true,
                         );
                     }
+                    pb2.finish_with_message("R2 done");
                 });
                 l.push(handle2);
+            } else {
+                MultiProgress::remove(&m, &pb2);
             }
             for i in l {
                 if !i.is_finished() {
@@ -164,9 +184,12 @@ fn main() {
         Commands::Inline { pattern1, pattern2 } => {
             let handle1 = thread::spawn(move || {
                 for r1_rec in r1 {
+                    pb.set_message("R1");
+                    pb.inc(1);
                     let record1 = extract(r1_rec.unwrap(), &pattern1);
                     write_file_r1 = write_inline_to_file(record1, write_file_r1, false);
                 }
+                pb.finish_with_message("R1 done");
             });
             let mut l = Vec::new();
             l.push(handle1);
@@ -174,13 +197,19 @@ fn main() {
             if !&args.r2_in.is_empty() {
                 let mut write_file_r2 = output_file(&format!("{}2", &args.prefix));
                 let r2 = read_fastq(&args.r2_in[0]).records();
+                pb2.set_position(0);
                 let handle2 = thread::spawn(move || {
                     for r2_rec in r2 {
+                        pb2.set_message("R2");
+                        pb2.inc(1);
                         let record2 = extract(r2_rec.unwrap(), &(pattern2.as_ref().unwrap()));
                         write_file_r2 = write_inline_to_file(record2, write_file_r2, true);
                     }
+                    pb2.finish_with_message("R2 done");
                 });
                 l.push(handle2);
+            } else {
+                MultiProgress::remove(&m, &pb2);
             }
             for i in l {
                 if !i.is_finished() {
