@@ -1,0 +1,13 @@
+/Users/judit/umi-transfer/target/debug/deps/console-721264d10473c5f7.rmeta: /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/lib.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/common_term.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/kb.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/term.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/unix_term.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/utils.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/ansi.rs
+
+/Users/judit/umi-transfer/target/debug/deps/libconsole-721264d10473c5f7.rlib: /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/lib.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/common_term.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/kb.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/term.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/unix_term.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/utils.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/ansi.rs
+
+/Users/judit/umi-transfer/target/debug/deps/console-721264d10473c5f7.d: /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/lib.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/common_term.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/kb.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/term.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/unix_term.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/utils.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/ansi.rs
+
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/lib.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/common_term.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/kb.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/term.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/unix_term.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/utils.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/console-0.15.1/src/ansi.rs:
