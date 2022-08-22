@@ -17,6 +17,44 @@ enum ExtractedRecord {
         umi: Vec<u8>,
     },
 }
+enum OutputFile {
+    Fastq {
+        read: bio::io::fastq::Writer<std::fs::File>,
+    },
+    Qzip {
+        read: bio::io::fastq::Writer<flate2::write::GzEncoder<std::fs::File>>,
+    },
+}
+impl OutputFile {
+    fn write(
+        self,
+        header: &std::string::String,
+        desc: Option<&str>,
+        s: bio::io::fastq::Record,
+    ) -> OutputFile {
+        match self {
+            OutputFile::Fastq { mut read } => {
+                // let mut n = *read;
+                // n.write(&header, desc, s.seq(), s.qual()).unwrap();
+
+                // OutputFile::Fastq { read: n }
+                //n
+                //OutputFile::Fastq { read: n }
+
+                //OutputFile::Fastq(n)
+                read.write(&header, desc, s.seq(), s.qual()).unwrap();
+                OutputFile::Fastq { read }
+            }
+            OutputFile::Qzip { mut read } => {
+                read.write(&header, desc, s.seq(), s.qual()).unwrap();
+
+                OutputFile::Qzip { read }
+                //n
+                //OutputFile::Qzip(*read)
+            }
+        }
+    }
+}
 fn read_fastq(
     path: &std::string::String,
 ) -> bio::io::fastq::Reader<std::io::BufReader<std::fs::File>> {
@@ -24,10 +62,21 @@ fn read_fastq(
         .map(bio::io::fastq::Reader::new)
         .unwrap()
 }
-fn output_file(name: &str) -> bio::io::fastq::Writer<std::fs::File> {
-    std::fs::File::create(format!("{}.fastq", name))
-        .map(bio::io::fastq::Writer::new)
-        .unwrap()
+fn output_file(name: &str, gz: bool) -> OutputFile {
+    if gz {
+        OutputFile::Qzip {
+            read: std::fs::File::create(format!("{}.fastq.gz", name))
+                .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::best()))
+                .map(bio::io::fastq::Writer::new)
+                .unwrap(),
+        }
+    } else {
+        OutputFile::Fastq {
+            read: std::fs::File::create(format!("{}.fastq", name))
+                .map(bio::io::fastq::Writer::new)
+                .unwrap(),
+        }
+    }
 }
 
 #[derive(clap::Parser)]
@@ -40,6 +89,9 @@ struct Opts {
     r2_in: Vec<String>,
     #[clap(long)]
     edit_nr: bool,
+    // this flag disables gzipped output
+    #[clap(long)]
+    no_gzip: bool,
     #[clap(subcommand)]
     sub: Commands,
 }
@@ -62,22 +114,21 @@ enum Commands {
 
 fn write_to_file(
     input: bio::io::fastq::Record,
-    mut output: bio::io::fastq::Writer<std::fs::File>,
+    output: OutputFile,
     umi: &[u8],
     second: bool,
-) -> bio::io::fastq::Writer<std::fs::File> {
+) -> OutputFile {
     let s = input;
     if second {
         let header = &[s.id(), ":", std::str::from_utf8(&umi).unwrap()].concat();
         let mut string = String::from(s.desc().unwrap());
         string.replace_range(0..1, "2");
         let desc: Option<&str> = Some(&string);
-        output.write(&header, desc, s.seq(), s.qual()).unwrap();
+        output.write(&header, desc, s)
     } else {
         let header = &[s.id(), ":", std::str::from_utf8(&umi).unwrap()].concat();
-        output.write(&header, s.desc(), s.seq(), s.qual()).unwrap();
+        output.write(&header, s.desc(), s.clone())
     }
-    output
 }
 fn parse(pattern: &str) -> Option<Nucleotide> {
     if let Some(captures) = UMI_PATTERN.captures(pattern) {
@@ -114,9 +165,9 @@ fn extract(record: bio::io::fastq::Record, pattern: &str) -> ExtractedRecord {
 }
 fn write_inline_to_file(
     record: ExtractedRecord,
-    write_file: bio::io::fastq::Writer<std::fs::File>,
+    write_file: OutputFile,
     second: bool,
-) -> bio::io::fastq::Writer<std::fs::File> {
+) -> OutputFile {
     match record {
         ExtractedRecord::Empty => panic!("Not Valid UMI/ Record"),
         ExtractedRecord::Valid { read, umi } => write_to_file(read, write_file, &umi, second),
@@ -125,8 +176,13 @@ fn write_inline_to_file(
 fn main() {
     let args = Opts::parse();
 
+    //let mut write_file_r1 = output_file_gz(&format!("{}1", &args.prefix));
+    let mut gzip = true;
+    if args.no_gzip {
+        gzip = false;
+    }
     // Create write files
-    let mut write_file_r1 = output_file(&format!("{}1", &args.prefix));
+    let mut write_file_r1 = output_file(&format!("{}1", &args.prefix), gzip);
 
     // read supplied files
     let r1 = read_fastq(&args.r1_in[0]).records();
@@ -140,6 +196,7 @@ fn main() {
     let pb2 = m.insert_after(&pb, ProgressBar::new(len.try_into().unwrap()));
     pb2.set_style(style.clone());
     println!("[1/1] Transfering UMI to records...");
+    // enables editing id in output file 2
     let mut edit_nr = false;
     if args.edit_nr {
         edit_nr = true;
@@ -161,7 +218,7 @@ fn main() {
             l.push(handle1);
             if !&args.r2_in.is_empty() {
                 let r2 = read_fastq(&args.r2_in[0]).records();
-                let mut write_file_r2 = output_file(&format!("{}2", &args.prefix));
+                let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), gzip);
                 let handle2 = thread::spawn(move || {
                     let ru = read_fastq(&ru1[0]).records();
                     pb2.set_position(0);
@@ -201,7 +258,7 @@ fn main() {
             l.push(handle1);
 
             if !&args.r2_in.is_empty() {
-                let mut write_file_r2 = output_file(&format!("{}2", &args.prefix));
+                let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), gzip);
                 let r2 = read_fastq(&args.r2_in[0]).records();
                 pb2.set_position(0);
                 let handle2 = thread::spawn(move || {
