@@ -190,12 +190,12 @@ fn main() {
         Commands::Inline { pattern1, pattern2 } => {
             let handle1 = thread::spawn(move || {
                 for r1_rec in r1 {
-                    pb.set_message("R1");
+                    pb.set_message("FASTQ 1");
                     pb.inc(1);
                     let record1 = extract(r1_rec.unwrap(), &pattern1);
                     write_file_r1 = write_inline_to_file(record1, write_file_r1, false);
                 }
-                pb.finish_with_message("R1 done");
+                pb.finish_with_message("FASTQ 1 done");
             });
             let mut l = Vec::new();
             l.push(handle1);
@@ -206,12 +206,12 @@ fn main() {
                 pb2.set_position(0);
                 let handle2 = thread::spawn(move || {
                     for r2_rec in r2 {
-                        pb2.set_message("R2");
+                        pb2.set_message("FASTQ 2");
                         pb2.inc(1);
                         let record2 = extract(r2_rec.unwrap(), &(pattern2.as_ref().unwrap()));
                         write_file_r2 = write_inline_to_file(record2, write_file_r2, false);
                     }
-                    pb2.finish_with_message("R2 done");
+                    pb2.finish_with_message("FASTQ 2 done");
                 });
                 l.push(handle2);
             } else {
