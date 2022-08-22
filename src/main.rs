@@ -209,7 +209,7 @@ fn main() {
                         pb2.set_message("R2");
                         pb2.inc(1);
                         let record2 = extract(r2_rec.unwrap(), &(pattern2.as_ref().unwrap()));
-                        write_file_r2 = write_inline_to_file(record2, write_file_r2, edit_nr);
+                        write_file_r2 = write_inline_to_file(record2, write_file_r2, false);
                     }
                     pb2.finish_with_message("R2 done");
                 });
