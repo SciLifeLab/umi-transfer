@@ -17,39 +17,25 @@ enum ExtractedRecord {
         umi: Vec<u8>,
     },
 }
+// Types
 type File = std::fs::File;
 type Fastq = std::io::BufReader<File>;
-type Gzip = std::io::BufReader<flate2::bufread::MultiGzDecoder<Fastq>>;
+type Gzip = flate2::bufread::MultiGzDecoder<Fastq>;
 
-enum Types {
-    Fastq(bio::io::fastq::Records<Fastq>),
-    Gzip(bio::io::fastq::Records<Gzip>),
-}
+// Enum for the two acceptable input file formats: .fastq and .fastq.gz
 enum ReadFile {
-    Fastq(bio::io::fastq::Reader<Fastq>),
-    Gzip(bio::io::fastq::Reader<Gzip>),
+    Fastq(File),
+    Gzip(Gzip),
 }
-impl std::io::Read for Types {
+impl std::io::Read for ReadFile {
     fn read(&mut self, into: &mut [u8]) -> std::io::Result<usize> {
-        self.read(into)
-    }
-}
-impl std::io::BufRead for Types {
-    fn fill_buf(self: &mut Types) -> std::io::Result<&[u8]> {
-        self.fill_buf()
-    }
-    fn consume(self: &mut Types, amt: usize) {
-        self.consume(amt)
-    }
-}
-impl ReadFile {
-    fn records(self) -> Types {
         match self {
-            ReadFile::Fastq(file) => Types::Fastq(file.records()),
-            ReadFile::Gzip(file) => Types::Gzip(file.records()),
+            ReadFile::Fastq(file) => file.read(into),
+            ReadFile::Gzip(file) => file.read(into),
         }
     }
 }
+// Enum for the two accepted output formats, .fastq and .fastq.gz
 enum OutputFile {
     Fastq {
         read: bio::io::fastq::Writer<File>,
@@ -77,24 +63,20 @@ impl OutputFile {
         }
     }
 }
-fn read_fastq(path: &str) -> ReadFile {
+// Read input file to Reader. Automatically scans if gzipped from .gz suffix
+fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>> {
     if path.ends_with(".gz") {
-        ReadFile::Gzip(
+        bio::io::fastq::Reader::new(ReadFile::Gzip(
             std::fs::File::open(path)
                 .map(std::io::BufReader::new)
                 .map(flate2::bufread::MultiGzDecoder::new)
-                .map(bio::io::fastq::Reader::new)
                 .unwrap(),
-        )
+        ))
     } else {
-        ReadFile::Fastq(
-            std::fs::File::open(path)
-                .map(bio::io::fastq::Reader::new)
-                .unwrap(),
-        )
+        bio::io::fastq::Reader::new(ReadFile::Fastq(std::fs::File::open(path).unwrap()))
     }
 }
-
+// Create output files, gzipped optional
 fn output_file(name: &str, gz: bool) -> OutputFile {
     if gz {
         OutputFile::Gzip {
@@ -114,17 +96,22 @@ fn output_file(name: &str, gz: bool) -> OutputFile {
 
 #[derive(clap::Parser)]
 struct Opts {
+    // prefix for output files, omitted flag will give default
     #[clap(long, default_value = "integrated")]
     prefix: String,
+    // Input file 1 with reads, required
     #[clap(long, required = true)]
     r1_in: Vec<String>,
+    // Input file 2 with reads, optional
     #[clap(long)]
     r2_in: Vec<String>,
+    // flag for changing '3' into '2' in header of output file 2, omitted will not change header
     #[clap(long)]
     edit_nr: bool,
     // this flag disables gzipped output
     #[clap(long)]
     no_gzip: bool,
+    // Subcommands specifying inline or separate extraction
     #[clap(subcommand)]
     sub: Commands,
 }
@@ -138,6 +125,7 @@ enum Commands {
     },
     #[clap(name = "inline")]
     Inline {
+        // Patterns for locating UMI inline, given in Nucleotide pattern
         #[clap(long, required = true)]
         pattern1: String,
         #[clap(long)]
@@ -145,6 +133,7 @@ enum Commands {
     },
 }
 
+// Writes record with properly inserted UMI to Output file
 fn write_to_file(
     input: bio::io::fastq::Record,
     output: OutputFile,
@@ -163,6 +152,7 @@ fn write_to_file(
         output.write(&header, s.desc(), s.clone())
     }
 }
+// Parses Pattern for Inline extraction
 fn parse(pattern: &str) -> Option<Nucleotide> {
     if let Some(captures) = UMI_PATTERN.captures(pattern) {
         Some(Nucleotide {
@@ -173,6 +163,7 @@ fn parse(pattern: &str) -> Option<Nucleotide> {
         panic!("")
     }
 }
+// Extracts UMI from inline record
 fn extract(record: bio::io::fastq::Record, pattern: &str) -> ExtractedRecord {
     let handler = parse(pattern);
     match handler {
@@ -196,6 +187,7 @@ fn extract(record: bio::io::fastq::Record, pattern: &str) -> ExtractedRecord {
         None => panic!(""),
     }
 }
+// Write inline record to Outputfile
 fn write_inline_to_file(
     record: ExtractedRecord,
     write_file: OutputFile,
@@ -206,9 +198,12 @@ fn write_inline_to_file(
         ExtractedRecord::Valid { read, umi } => write_to_file(read, write_file, &umi, second),
     }
 }
+
 fn main() {
+    // Parse commandline arguments
     let args = Opts::parse();
 
+    // Automatically gzip output file, if --no-gzip flag was included this will be disabled
     let mut gzip = true;
     if args.no_gzip {
         gzip = false;
@@ -216,7 +211,7 @@ fn main() {
     // Create write files, not gzipped if --no-gzip flag entered.
     let mut write_file_r1 = output_file(&format!("{}1", &args.prefix), gzip);
 
-    // gör en ReadFile Enum med Read() method i :(
+    // Create a record iterator from input file 1
     let r1 = read_fastq(&args.r1_in[0]).records();
 
     // Settings for progress bar
@@ -229,36 +224,49 @@ fn main() {
     let pb2 = m.insert_after(&pb, ProgressBar::new(len.try_into().unwrap()));
     pb2.set_style(style.clone());
     println!("[1/1] Transfering UMI to records...");
-    // enables editing id in output file 2
+
+    // Enables editing id in output file 2 if --edit-nr flag was included
     let mut edit_nr = false;
     if args.edit_nr {
         edit_nr = true;
     }
+    // Match Subcommand
     match args.sub {
         Commands::Separate { ru_in } => {
+            // Clone UMI file for second thread
             let ru1 = ru_in.clone();
             let handle1 = thread::spawn(move || {
                 let ru = read_fastq(&ru_in[0]).records();
+                // Iterate records in input file and UMI file
                 for (r1_rec, ru_rec) in r1.zip(ru) {
+                    // Update progress bar
                     pb.set_message("R1");
                     pb.inc(1);
+                    // Write to Output file
                     write_file_r1 =
                         write_to_file(r1_rec.unwrap(), write_file_r1, ru_rec.unwrap().seq(), false);
                 }
                 pb.finish_with_message("R1 done");
             });
+
+            // Save thread handler 1 in Vec
             let mut l = Vec::new();
             l.push(handle1);
+
+            // If input file 2 exists:
             if !&args.r2_in.is_empty() {
                 let r2 = read_fastq(&args.r2_in[0]).records();
                 let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), gzip);
                 let handle2 = thread::spawn(move || {
                     let ru = read_fastq(&ru1[0]).records();
 
+                    // Set progressbar to position 0
                     pb2.set_position(0);
                     for (r2_rec, ru_rec) in r2.zip(ru) {
+                        // Update progressbar
                         pb2.set_message("R2");
                         pb2.inc(1);
+                        // Write record to Output file
                         write_file_r2 = write_to_file(
                             r2_rec.unwrap(),
                             write_file_r2,
@@ -268,10 +276,13 @@ fn main() {
                     }
                     pb2.finish_with_message("R2 done");
                 });
+                // Save thread handler 2 in Vec
                 l.push(handle2);
             } else {
+                // If no recond input file exists, remove second progress bar
                 MultiProgress::remove(&m, &pb2);
             }
+            // Wait for threads to finish
             for i in l {
                 if !i.is_finished() {
                     i.join().unwrap();
@@ -280,14 +291,22 @@ fn main() {
         }
         Commands::Inline { pattern1, pattern2 } => {
             let handle1 = thread::spawn(move || {
+                // Iterate each record in input file 1
                 for r1_rec in r1 {
+                    // Update progress bar
                     pb.set_message("FASTQ 1");
                     pb.inc(1);
+
+                    // Extract UMI from record and save both
                     let record1 = extract(r1_rec.unwrap(), &pattern1);
+
+                    // Write record and extracted UMI to output file
                     write_file_r1 = write_inline_to_file(record1, write_file_r1, false);
                 }
                 pb.finish_with_message("FASTQ 1 done");
             });
+
+            // Save thread handler 1 to Vec
             let mut l = Vec::new();
             l.push(handle1);
 
