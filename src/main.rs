@@ -17,11 +17,12 @@ enum ExtractedRecord {
         umi: Vec<u8>,
     },
 }
+
 enum OutputFile {
     Fastq {
         read: bio::io::fastq::Writer<std::fs::File>,
     },
-    Qzip {
+    Gzip {
         read: bio::io::fastq::Writer<flate2::write::GzEncoder<std::fs::File>>,
     },
 }
@@ -34,37 +35,35 @@ impl OutputFile {
     ) -> OutputFile {
         match self {
             OutputFile::Fastq { mut read } => {
-                // let mut n = *read;
-                // n.write(&header, desc, s.seq(), s.qual()).unwrap();
-
-                // OutputFile::Fastq { read: n }
-                //n
-                //OutputFile::Fastq { read: n }
-
-                //OutputFile::Fastq(n)
                 read.write(&header, desc, s.seq(), s.qual()).unwrap();
                 OutputFile::Fastq { read }
             }
-            OutputFile::Qzip { mut read } => {
+            OutputFile::Gzip { mut read } => {
                 read.write(&header, desc, s.seq(), s.qual()).unwrap();
-
-                OutputFile::Qzip { read }
-                //n
-                //OutputFile::Qzip(*read)
+                OutputFile::Gzip { read }
             }
         }
     }
 }
-fn read_fastq(
-    path: &std::string::String,
-) -> bio::io::fastq::Reader<std::io::BufReader<std::fs::File>> {
+fn read_fastq_gz(
+    path: &str,
+) -> bio::io::fastq::Reader<
+    std::io::BufReader<flate2::bufread::MultiGzDecoder<std::io::BufReader<std::fs::File>>>,
+> {
+    std::fs::File::open(path)
+        .map(std::io::BufReader::new)
+        .map(flate2::bufread::MultiGzDecoder::new)
+        .map(bio::io::fastq::Reader::new)
+        .unwrap()
+}
+fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<std::fs::File>> {
     std::fs::File::open(path)
         .map(bio::io::fastq::Reader::new)
         .unwrap()
 }
 fn output_file(name: &str, gz: bool) -> OutputFile {
     if gz {
-        OutputFile::Qzip {
+        OutputFile::Gzip {
             read: std::fs::File::create(format!("{}.fastq.gz", name))
                 .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::best()))
                 .map(bio::io::fastq::Writer::new)
@@ -176,16 +175,29 @@ fn write_inline_to_file(
 fn main() {
     let args = Opts::parse();
 
-    //let mut write_file_r1 = output_file_gz(&format!("{}1", &args.prefix));
     let mut gzip = true;
     if args.no_gzip {
         gzip = false;
     }
-    // Create write files
+    // Create write files, not gzipped if --no-gzip flag entered.
     let mut write_file_r1 = output_file(&format!("{}1", &args.prefix), gzip);
 
+    // gör en ReadFile Enum med Read() method i :(
+    let r1: bio::io::fastq::Records<_>;
+    if args.r1_in[0].ends_with(".gz") {
+        r1 = read_fastq_gz(&args.r1_in[0]).records();
+    } else {
+        r1 = read_fastq(&args.r1_in[0]).records();
+    };
     // read supplied files
-    let r1 = read_fastq(&args.r1_in[0]).records();
+    // let r1 = if args.r1_in[0].ends_with(".gz") {
+    //     read_fastq_gz(&args.r1_in[0]).records();
+    // } else if !args.r1_in[0].ends_with(".gz") {
+    //     read_fastq(&args.r1_in[0]).records();
+    // } else {
+    //     panic!("Not valid file");
+    // };
+
     // Settings for progress bar
     let len = read_fastq(&args.r1_in[0]).records().count();
     let m = MultiProgress::new();
@@ -205,7 +217,11 @@ fn main() {
         Commands::Separate { ru_in } => {
             let ru1 = ru_in.clone();
             let handle1 = thread::spawn(move || {
-                let ru = read_fastq(&ru_in[0]).records();
+                let ru = if (ru_in[0]).ends_with(".gz") {
+                    read_fastq_gz(&ru_in[0]).records();
+                } else {
+                    read_fastq(&ru_in[0]).records();
+                };
                 for (r1_rec, ru_rec) in r1.zip(ru) {
                     pb.set_message("R1");
                     pb.inc(1);
@@ -217,10 +233,19 @@ fn main() {
             let mut l = Vec::new();
             l.push(handle1);
             if !&args.r2_in.is_empty() {
-                let r2 = read_fastq(&args.r2_in[0]).records();
+                let r2 = if (args.r2_in[0]).ends_with(".gz") {
+                    read_fastq_gz(&args.r2_in[0]).records();
+                } else {
+                    read_fastq(&args.r2_in[0]).records();
+                };
                 let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), gzip);
                 let handle2 = thread::spawn(move || {
-                    let ru = read_fastq(&ru1[0]).records();
+                    let ru = if ru_in[0].ends_with(".gz") {
+                        read_fastq_gz(&ru1[0]).records();
+                    } else {
+                        read_fastq(&ru1[0]).records();
+                    };
+
                     pb2.set_position(0);
                     for (r2_rec, ru_rec) in r2.zip(ru) {
                         pb2.set_message("R2");
@@ -259,7 +284,11 @@ fn main() {
 
             if !&args.r2_in.is_empty() {
                 let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), gzip);
-                let r2 = read_fastq(&args.r2_in[0]).records();
+                let r2 = if (args.r2_in[0]).ends_with(".gz") {
+                    read_fastq_gz(&args.r2_in[0]).records();
+                } else {
+                    read_fastq(&args.r2_in[0]).records();
+                };
                 pb2.set_position(0);
                 let handle2 = thread::spawn(move || {
                     for r2_rec in r2 {
