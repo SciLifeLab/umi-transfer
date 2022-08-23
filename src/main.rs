@@ -95,21 +95,43 @@ fn output_file(name: &str, gz: bool) -> OutputFile {
 }
 
 #[derive(clap::Parser)]
+#[clap(
+    version = "0.1.0",
+    author = "Judit Hohenthal",
+    about = "A tool for transfering Unique Molecular Identifiers (UMIs)."
+)]
 struct Opts {
-    // prefix for output files, omitted flag will give default
-    #[clap(long, default_value = "integrated")]
+    #[clap(
+        long,
+        default_value = "integrated",
+        help = "Prefix for output files, omitted flag will result in default value.
+        \n "
+    )]
     prefix: String,
-    // Input file 1 with reads, required
-    #[clap(long, required = true)]
+    #[clap(
+        long,
+        required = true,
+        help = "[REQUIRED] Input file 1 with reads.
+    \n "
+    )]
     r1_in: Vec<String>,
-    // Input file 2 with reads, optional
-    #[clap(long)]
+    #[clap(
+        long,
+        help = "Input file 2 with reads.
+    \n "
+    )]
     r2_in: Vec<String>,
-    // flag for changing '3' into '2' in header of output file 2, omitted will not change header
-    #[clap(long)]
+    #[clap(
+        long,
+        help = "Automatically change '3' into '2' in header of output file from R3.
+        \n "
+    )]
     edit_nr: bool,
-    // this flag disables gzipped output
-    #[clap(long)]
+    #[clap(
+        long,
+        help = "Disable gzipped output file (its enabled by default).
+    \n "
+    )]
     no_gzip: bool,
     // Subcommands specifying inline or separate extraction
     #[clap(subcommand)]
@@ -118,12 +140,25 @@ struct Opts {
 
 #[derive(clap::Subcommand)]
 enum Commands {
-    #[clap(name = "separate")]
+    #[clap(
+        name = "separate",
+        about = "If the UMI reads is in separate fastq file 'separate' must be present in command line.
+        \nUMI is entered after --ru-in flag.
+        \nExample input: 'umi-transfer --no-gzip --r1-in 'example_file.fastq.gz separate --ru-in 'example_umi.fastq.gz''
+        \n "
+    )]
     Separate {
         #[clap(long, required = true)]
         ru_in: Vec<String>,
     },
-    #[clap(name = "inline")]
+    #[clap(
+        name = "inline",
+        about = "If the UMI appears inline with the input read files 'inline' must be present in command line.
+        \n--pattern1 a nucleotide pattern must be available to locate UMI in read file 1
+        \n--pattern2 a nucleotide pattern must be available to locate UMI if read file 2 exists
+        \nExample input: 'umi-transfer --no-gzip --r1-in 'example_file.fastq' inline --pattern1 'NNNNNNNNN'
+        \n "
+    )]
     Inline {
         // Patterns for locating UMI inline, given in Nucleotide pattern
         #[clap(long, required = true)]
