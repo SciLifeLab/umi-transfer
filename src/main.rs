@@ -57,11 +57,11 @@ impl OutputFile {
     ) -> OutputFile {
         match self {
             OutputFile::Fastq { mut read } => {
-                read.write(&header, desc, s.seq(), s.qual()).unwrap();
+                read.write(header, desc, s.seq(), s.qual()).unwrap();
                 OutputFile::Fastq { read }
             }
             OutputFile::Gzip { mut read } => {
-                read.write(&header, desc, s.seq(), s.qual()).unwrap();
+                read.write(header, desc, s.seq(), s.qual()).unwrap();
                 OutputFile::Gzip { read }
             }
         }
@@ -185,10 +185,10 @@ fn write_to_file(
         let mut string = String::from(s.desc().unwrap());
         string.replace_range(0..1, "2");
         let desc: Option<&str> = Some(&string);
-        output.write(&header, desc, s)
+        output.write(header, desc, s)
     } else {
         let header = &[s.id(), ":", std::str::from_utf8(&umi).unwrap()].concat();
-        output.write(&header, s.desc(), s.clone())
+        output.write(header, s.desc(), s.clone())
     }
 }
 // Parses Pattern for Inline extraction
@@ -261,7 +261,7 @@ fn main() {
     let pb = m.add(ProgressBar::new(len.try_into().unwrap()));
     pb.set_style(style.clone());
     let pb2 = m.insert_after(&pb, ProgressBar::new(len.try_into().unwrap()));
-    pb2.set_style(style.clone());
+    pb2.set_style(style);
     println!("[1/1] Transfering UMI to records...");
 
     // Enables editing id in output file 2 if --edit-nr flag was included
