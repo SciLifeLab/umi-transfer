@@ -49,12 +49,7 @@ enum OutputFile {
 }
 impl OutputFile {
     // Implement write for OutputFile enum
-    fn write(
-        self,
-        header: &std::string::String,
-        desc: Option<&str>,
-        s: bio::io::fastq::Record,
-    ) -> OutputFile {
+    fn write(self, header: &str, desc: Option<&str>, s: bio::io::fastq::Record) -> OutputFile {
         match self {
             OutputFile::Fastq { mut read } => {
                 read.write(header, desc, s.seq(), s.qual()).unwrap();
