@@ -6,10 +6,12 @@ use std::thread;
 lazy_static::lazy_static! {
 static ref UMI_PATTERN: regex::Regex = regex::Regex::new("^(N{2,})([ATCG]*)$").unwrap();
 }
+// Nucleotide pattern for inline transfer
 struct Nucleotide {
     offset: usize,
     spacer: String,
 }
+// Valid extraction of UMI and read for inline transfer
 enum ExtractedRecord {
     Empty,
     Valid {
@@ -17,17 +19,18 @@ enum ExtractedRecord {
         umi: Vec<u8>,
     },
 }
-// Types
+// Defining types for simplicity
 type File = std::fs::File;
 type Fastq = std::io::BufReader<File>;
 type Gzip = flate2::bufread::MultiGzDecoder<Fastq>;
 
-// Enum for the two acceptable input file formats: .fastq and .fastq.gz
+// Enum for the two acceptable input file formats: '.fastq' and '.fastq.gz'
 enum ReadFile {
     Fastq(File),
     Gzip(Gzip),
 }
 impl std::io::Read for ReadFile {
+    // Implement read for ReadFile enum
     fn read(&mut self, into: &mut [u8]) -> std::io::Result<usize> {
         match self {
             ReadFile::Fastq(file) => file.read(into),
@@ -35,7 +38,7 @@ impl std::io::Read for ReadFile {
         }
     }
 }
-// Enum for the two accepted output formats, .fastq and .fastq.gz
+// Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
 enum OutputFile {
     Fastq {
         read: bio::io::fastq::Writer<File>,
@@ -45,6 +48,7 @@ enum OutputFile {
     },
 }
 impl OutputFile {
+    // Implement write for OutputFile enum
     fn write(
         self,
         header: &std::string::String,
