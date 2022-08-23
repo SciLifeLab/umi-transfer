@@ -1,2 +1,0 @@
-cargo:rustc-env=TYPENUM_BUILD_CONSTS=/Users/judit/umi-transfer/target/release/build/typenum-8fe869649d9bb911/out/consts.rs
-cargo:rustc-env=TYPENUM_BUILD_OP=/Users/judit/umi-transfer/target/release/build/typenum-8fe869649d9bb911/out/op.rs
