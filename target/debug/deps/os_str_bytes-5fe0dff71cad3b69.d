@@ -1,0 +1,12 @@
+/Users/judit/umi-transfer/target/debug/deps/os_str_bytes-5fe0dff71cad3b69.rmeta: /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/lib.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/common/mod.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/common/raw.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/iter.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/pattern.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/raw_str.rs
+
+/Users/judit/umi-transfer/target/debug/deps/libos_str_bytes-5fe0dff71cad3b69.rlib: /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/lib.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/common/mod.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/common/raw.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/iter.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/pattern.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/raw_str.rs
+
+/Users/judit/umi-transfer/target/debug/deps/os_str_bytes-5fe0dff71cad3b69.d: /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/lib.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/common/mod.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/common/raw.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/iter.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/pattern.rs /Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/raw_str.rs
+
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/lib.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/common/mod.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/common/raw.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/iter.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/pattern.rs:
+/Users/judit/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.2.0/src/raw_str.rs:
