@@ -35,10 +35,15 @@ The tool requires an input as follows:
 
 Running the tool can be done by `cargo run --release -- [options] --r1-in 'fastq' <Subcommands> `, where the `--release` flag is optional, but will ensure an optimized build. <br>
 
-### Inline UMI extraction example:
+### Inline UMI example:
 
 `cargo run --release -- --prefix 'output' --r1-in 'R1.fastq' --r2-in 'R2.fastq' inline --pattern1 'NNNNNNNNN' --pattern2 'NNNNNNNNN'`
 
 ### UMI in seperate file example:
 
 `cargo run --release -- --prefix 'output' --r1-in 'R1.fastq' --r2-in 'R3.fastq' separate --ru-in 'R2.fastq'`
+
+### Special flags:
+
+> `--edit-nr` This flag will automatically change the '3' in the R3 files record-headers. Its disabled by default.
+> `--no-gzip` This flag diables automatic compression (.gz) of output files.
