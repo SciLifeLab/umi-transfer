@@ -18,3 +18,5 @@ run_all:
 	@cargo run --release -- --no-gzip --prefix run_in_gz --r2-in /Users/judit/Downloads/barcodex-rs-master/inline-test/test_fil_R2.fastq.gz --r1-in /Users/judit/Downloads/barcodex-rs-master/inline-test/test_fil_R1.fastq.gz inline --pattern1 NNNNNNNNN --pattern2 NNNNNNNNN
 	@cargo run --release -- --no-gzip --prefix run_in_gz_sing --r1-in /Users/judit/Downloads/barcodex-rs-master/inline-test/test_fil_R1.fastq.gz inline --pattern1 NNNNNNNNN
 
+run_test:
+	@cargo run --release -- --no-gzip --prefix run --r1-in /Users/judit/UMIembed/fil/P21809_150_S28_L001_R1_001.fastq  help
