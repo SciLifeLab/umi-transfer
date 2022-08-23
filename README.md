@@ -35,7 +35,7 @@ The tool requires an input as follows:
 
 Running the tool can be done by `cargo run --release -- [options] --r1-in 'fastq' <Subcommands> `, where the `--release` flag is optional, but will ensure an optimized build. <br>
 
-### Inline UMI extraction example:
+### Inline UMI example:
 
 `cargo run --release -- --prefix 'output' --r1-in 'R1.fastq' --r2-in 'R2.fastq' inline --pattern1 'NNNNNNNNN' --pattern2 'NNNNNNNNN'`
 
