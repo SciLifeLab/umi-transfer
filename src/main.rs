@@ -77,24 +77,6 @@ fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>
         bio::io::fastq::Reader::new(ReadFile::Fastq(std::fs::File::open(path).unwrap()))
     }
 }
-//// OLD ver
-// // Create output files, gzipped optional
-// fn output_file(name: &str, gz: bool) -> OutputFile {
-//     if gz {
-//         OutputFile::Gzip {
-//             read: std::fs::File::create(format!("{}.fastq.gz", name))
-//                 .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::best()))
-//                 .map(bio::io::fastq::Writer::new)
-//                 .unwrap(),
-//         }
-//     } else {
-//         OutputFile::Fastq {
-//             read: std::fs::File::create(format!("{}.fastq", name))
-//                 .map(bio::io::fastq::Writer::new)
-//                 .unwrap(),
-//         }
-//     }
-// }
 
 // Create output files, gzipped optional
 fn output_file(name: &str, gz: bool) -> OutputFile {
@@ -117,7 +99,7 @@ fn output_file(name: &str, gz: bool) -> OutputFile {
 #[derive(clap::Parser)]
 #[clap(
     version = "0.1.1",
-    author = "Judit Hohenthal",
+    author = "Written by Judit Hohenthal",
     about = "A tool for transfering Unique Molecular Identifiers (UMIs)."
 )]
 struct Opts {
@@ -127,7 +109,16 @@ struct Opts {
         help = "Prefix for output files, omitted flag will result in default value.
         \n "
     )]
-    prefix: String,
+    // out:
+    // fix automatic assignement if only out exists, otherwise (if r2_out exists) literal names
+    out: String,
+    #[clap(
+        long,
+        help = "Prefix for output file 2, omitted flag will result in default value or value given by '--out'.
+        \n "
+    )]
+    r2_out: Option<String>,
+    //prefix: String,
     #[clap(
         long,
         required = true,
@@ -143,16 +134,16 @@ struct Opts {
     r2_in: Vec<String>,
     #[clap(
         long,
-        help = "Automatically change '3' into '2' in header of output file from R3.
+        help = "Automatically change read number into '2' in header of output file from input file 2.
         \n "
     )]
     edit_nr: bool,
     #[clap(
         long,
-        help = "Disable gzipped output file (its enabled by default).
+        help = "Disable default compression of output files.
     \n "
     )]
-    no_gzip: bool,
+    plain: bool,
     // Subcommands specifying inline or separate extraction
     #[clap(subcommand)]
     sub: Commands,
@@ -193,10 +184,10 @@ fn write_to_file(
     input: bio::io::fastq::Record,
     output: OutputFile,
     umi: &[u8],
-    second: bool,
+    edit_nr: bool, // this only works for input file 2 at the moment
 ) -> OutputFile {
     let s = input;
-    if second {
+    if edit_nr {
         let header = &[s.id(), ":", std::str::from_utf8(&umi).unwrap()].concat();
         let mut string = String::from(s.desc().unwrap());
         string.replace_range(0..1, "2");
@@ -261,11 +252,19 @@ fn main() {
 
     // Automatically gzip output file, if --no-gzip flag was included this will be disabled
     let mut gzip = true;
-    if args.no_gzip {
+    if args.plain {
         gzip = false;
     }
+    // if --r2-out flag exists names should be the literal string supplied. Otherwise seperate the file names with 1 and 2
+    let mut prefix1 = (args.out).clone();
+    let mut prefix2 = args.out;
+    prefix2 = (args.r2_out).unwrap_or_else(|| prefix2);
+    if prefix1 == prefix2 {
+        prefix1 = format!("{}1", prefix1);
+        prefix2 = format!("{}2", prefix2);
+    }
     // Create write files, not gzipped if --no-gzip flag entered.
-    let mut write_file_r1 = output_file(&format!("{}1", &args.prefix), gzip);
+    let mut write_file_r1 = output_file(&format!("{}", prefix1), gzip);
 
     // Create a record iterator from input file 1
     let r1 = read_fastq(&args.r1_in[0]).records();
@@ -312,7 +311,9 @@ fn main() {
             // If input file 2 exists:
             if !&args.r2_in.is_empty() {
                 let r2 = read_fastq(&args.r2_in[0]).records();
-                let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), gzip);
+                // let mut prefix = args.out;
+                // prefix = (args.r2_out).unwrap_or_else(|| prefix);
+                let mut write_file_r2 = output_file(&format!("{}", prefix2), gzip);
                 let handle2 = thread::spawn(move || {
                     let ru = read_fastq(&ru1[0]).records();
 
@@ -371,8 +372,10 @@ fn main() {
             if !&args.r2_in.is_empty() {
                 // Check if a pattern2 exists
                 pat1 = pattern2.unwrap_or_else(|| pat1);
+                // let mut prefix = args.out;
+                // prefix = (args.r2_out).unwrap_or_else(|| prefix);
                 // create output file
-                let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), gzip);
+                let mut write_file_r2 = output_file(&format!("{}", prefix2), gzip);
                 // create iterator over input file 2
                 let r2 = read_fastq(&args.r2_in[0]).records();
                 pb2.set_position(0);

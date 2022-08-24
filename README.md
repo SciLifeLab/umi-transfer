@@ -45,5 +45,6 @@ Running the tool can be done by `cargo run --release -- [options] --r1-in 'fastq
 
 ### Special flags:
 
+> `--pattern2` Enables special search pattern form input file 2 in inline transfer. Without this flag both files use `--pattern1`.
 > `--edit-nr` This flag will automatically change the '3' in the R3 files record-headers. Its disabled by default.
-> `--no-gzip` This flag diables automatic compression (.gz) of output files.
+> `--plain` This flag diables automatic compression (.gz) of output files.
