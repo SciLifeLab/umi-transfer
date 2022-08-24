@@ -324,6 +324,7 @@ fn main() {
             }
         }
         Commands::Inline { pattern1, pattern2 } => {
+            let mut pat1 = pattern1.clone();
             let handle1 = thread::spawn(move || {
                 // Iterate each record in input file 1
                 for r1_rec in r1 {
@@ -343,7 +344,7 @@ fn main() {
             // Save thread handler 1 to Vec
             let mut l = Vec::new();
             l.push(handle1);
-
+            pat1 = pattern2.unwrap_or_else(|| pat1);
             if !&args.r2_in.is_empty() {
                 let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), gzip);
                 let r2 = read_fastq(&args.r2_in[0]).records();
@@ -352,7 +353,7 @@ fn main() {
                     for r2_rec in r2 {
                         pb2.set_message("FASTQ 2");
                         pb2.inc(1);
-                        let record2 = extract(r2_rec.unwrap(), &(pattern2.as_ref().unwrap()));
+                        let record2 = extract(r2_rec.unwrap(), &(pat1));
                         write_file_r2 = write_inline_to_file(record2, write_file_r2, false);
                     }
                     pb2.finish_with_message("FASTQ 2 done");
