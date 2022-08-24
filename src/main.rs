@@ -1,4 +1,5 @@
 use clap::Parser;
+use file_format::FileFormat;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::iter::Iterator;
 use std::thread;
@@ -62,9 +63,10 @@ impl OutputFile {
         }
     }
 }
-// Read input file to Reader. Automatically scans if gzipped from .gz suffix
+// Read input file to Reader. Automatically scans if gzipped from FileFormat crate
 fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>> {
-    if path.ends_with(".gz") {
+    let format = FileFormat::from_file(path.clone()).unwrap();
+    if format == FileFormat::Gzip {
         bio::io::fastq::Reader::new(ReadFile::Gzip(
             std::fs::File::open(path)
                 .map(std::io::BufReader::new)
@@ -75,6 +77,25 @@ fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>
         bio::io::fastq::Reader::new(ReadFile::Fastq(std::fs::File::open(path).unwrap()))
     }
 }
+//// OLD ver
+// // Create output files, gzipped optional
+// fn output_file(name: &str, gz: bool) -> OutputFile {
+//     if gz {
+//         OutputFile::Gzip {
+//             read: std::fs::File::create(format!("{}.fastq.gz", name))
+//                 .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::best()))
+//                 .map(bio::io::fastq::Writer::new)
+//                 .unwrap(),
+//         }
+//     } else {
+//         OutputFile::Fastq {
+//             read: std::fs::File::create(format!("{}.fastq", name))
+//                 .map(bio::io::fastq::Writer::new)
+//                 .unwrap(),
+//         }
+//     }
+// }
+
 // Create output files, gzipped optional
 fn output_file(name: &str, gz: bool) -> OutputFile {
     if gz {

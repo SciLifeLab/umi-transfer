@@ -302,6 +302,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "835a3dc7d1ec9e75e2b5fb4ba75396837112d2060b03f7d43bc1897c7f7211da"
 
 [[package]]
+name = "file-format"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fb46518b6034ba6dbc075ca73277d66cbd488c651c2ccc7255c62b00ce48d24"
+
+[[package]]
 name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -910,6 +916,7 @@ version = "0.1.0"
 dependencies = [
  "bio",
  "clap",
+ "file-format",
  "flate2",
  "indicatif",
  "lazy_static",
