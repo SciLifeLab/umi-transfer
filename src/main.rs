@@ -19,7 +19,7 @@ enum ExtractedRecord {
         umi: Vec<u8>,
     },
 }
-// Defining types for simplicity
+// Defining types for simplicity/ readability
 type File = std::fs::File;
 type Fastq = std::io::BufReader<File>;
 type Gzip = flate2::bufread::MultiGzDecoder<Fastq>;
@@ -95,7 +95,7 @@ fn output_file(name: &str, gz: bool) -> OutputFile {
 
 #[derive(clap::Parser)]
 #[clap(
-    version = "0.1.0",
+    version = "0.1.1",
     author = "Judit Hohenthal",
     about = "A tool for transfering Unique Molecular Identifiers (UMIs)."
 )]
@@ -227,6 +227,7 @@ fn write_inline_to_file(
     write_file: OutputFile,
     second: bool,
 ) -> OutputFile {
+    // The record has to have a valid extraxted UMI and read with UMI removed
     match record {
         ExtractedRecord::Empty => panic!("Not Valid UMI/ Record"),
         ExtractedRecord::Valid { read, umi } => write_to_file(read, write_file, &umi, second),
@@ -324,6 +325,7 @@ fn main() {
             }
         }
         Commands::Inline { pattern1, pattern2 } => {
+            // save pattern1 incase its used for both read files
             let mut pat1 = pattern1.clone();
             let handle1 = thread::spawn(move || {
                 // Iterate each record in input file 1
@@ -344,9 +346,13 @@ fn main() {
             // Save thread handler 1 to Vec
             let mut l = Vec::new();
             l.push(handle1);
-            pat1 = pattern2.unwrap_or_else(|| pat1);
+
             if !&args.r2_in.is_empty() {
+                // Check if a pattern2 exists
+                pat1 = pattern2.unwrap_or_else(|| pat1);
+                // create output file
                 let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), gzip);
+                // create iterator over input file 2
                 let r2 = read_fastq(&args.r2_in[0]).records();
                 pb2.set_position(0);
                 let handle2 = thread::spawn(move || {
