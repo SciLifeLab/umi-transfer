@@ -372,8 +372,6 @@ fn main() {
             if !&args.r2_in.is_empty() {
                 // Check if a pattern2 exists
                 pat1 = pattern2.unwrap_or_else(|| pat1);
-                // let mut prefix = args.out;
-                // prefix = (args.r2_out).unwrap_or_else(|| prefix);
                 // create output file
                 let mut write_file_r2 = output_file(&format!("{}", prefix2), gzip);
                 // create iterator over input file 2
