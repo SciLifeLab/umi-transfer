@@ -65,7 +65,7 @@ impl OutputFile {
 }
 // Read input file to Reader. Automatically scans if gzipped from FileFormat crate
 fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>> {
-    let format = FileFormat::from_file(path.clone()).unwrap();
+    let format = FileFormat::from_file(path).unwrap();
     if format == FileFormat::Gzip {
         bio::io::fastq::Reader::new(ReadFile::Gzip(
             std::fs::File::open(path)
