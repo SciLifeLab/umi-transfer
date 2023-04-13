@@ -20,24 +20,26 @@ The tool requires an input as follows:
 
 `SUBCOMMANDS: `
 
-> `inline:`
->
-> > | Flag         |          Required          |                Description |
-> > | ------------ | :------------------------: | -------------------------: |
-> > | `--pattern1` |            Yes             | Nucleotide Pattern for UMI |
-> > | `--pattern2` | Needed if `--r2-in` exists | Nucleotide Pattern for UMI |
->
-> `separate:`
->
-> > | Flag      | Required |                  Description |
-> > | --------- | :------: | ---------------------------: |
-> > | `--ru-in` |   Yes    | FASTQ containing UMI records |
+`inline:`
+|
+| Flag         |          Required          |                Description |
+| ------------ | :------------------------: | -------------------------: |
+| `--pattern1` |            Yes             | Nucleotide Pattern for UMI |
+| `--pattern2` | Needed if `--r2-in` exists | Nucleotide Pattern for UMI |
+|
+| `separate:`
+|
+| Flag      | Required |                  Description |
+| --------- | :------: | ---------------------------: |
+| `--ru-in` |   Yes    | FASTQ containing UMI records |
 
 Running the tool can be done by `cargo run --release -- [options] --r1-in 'fastq' <Subcommands> `, where the `--release` flag is optional, but will ensure an optimized build. <br>
 
 ### Inline UMI example
 
-`cargo run --release -- --prefix 'output' --r1-in 'R1.fastq' --r2-in 'R2.fastq' inline --pattern1 'NNNNNNNNN' --pattern2 'NNNNNNNNN'`
+```shell
+cargo run --release -- --prefix 'output' --r1-in 'R1.fastq' --r2-in 'R2.fastq' inline --pattern1 'NNNNNNNNN' --pattern2 'NNNNNNNNN'
+```
 
 ### UMI in seperate file example
 
@@ -47,5 +49,5 @@ cargo run --release -- --prefix 'output' --r1-in 'R1.fastq' --r2-in 'R3.fastq' s
 
 ### Special flags
 
-> `--edit-nr` This flag will automatically change the '3' in the R3 files record-headers. Its disabled by default.
-> `--no-gzip` This flag diables automatic compression (.gz) of output files.
+`--edit-nr` This flag will automatically change the '3' in the R3 files record-headers. Its disabled by default.
+`--no-gzip` This flag diables automatic compression (.gz) of output files.
