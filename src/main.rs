@@ -13,8 +13,8 @@ enum ReadFile {
     Gzip(Gzip),
 }
 
+// Implement read for ReadFile enum
 impl std::io::Read for ReadFile {
-    // Implement read for ReadFile enum
     fn read(&mut self, into: &mut [u8]) -> std::io::Result<usize> {
         match self {
             ReadFile::Fastq(file) => file.read(into),
@@ -25,16 +25,25 @@ impl std::io::Read for ReadFile {
 
 // Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
 enum OutputFile {
-    Fastq { read: bio::io::fastq::Writer<File> },
+    Fastq {
+        read: bio::io::fastq::Writer<File>,
+    },
+    Gzip {
+        read: bio::io::fastq::Writer<flate2::write::GzEncoder<File>>,
+    },
 }
 
+// Implement write for OutputFile enum
 impl OutputFile {
-    // Implement write for OutputFile enum
     fn write(self, header: &str, desc: Option<&str>, s: bio::io::fastq::Record) -> OutputFile {
         match self {
             OutputFile::Fastq { mut read } => {
                 read.write(header, desc, s.seq(), s.qual()).unwrap();
                 OutputFile::Fastq { read }
+            }
+            OutputFile::Gzip { mut read } => {
+                read.write(header, desc, s.seq(), s.qual()).unwrap();
+                OutputFile::Gzip { read }
             }
         }
     }
@@ -55,11 +64,20 @@ fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>
 }
 
 // Create output files
-fn output_file(name: &str) -> OutputFile {
-    OutputFile::Fastq {
-        read: std::fs::File::create(format!("{}.fastq", name))
-            .map(bio::io::fastq::Writer::new)
-            .unwrap(),
+fn output_file(name: &str, gz: bool) -> OutputFile {
+    if gz {
+        OutputFile::Gzip {
+            read: std::fs::File::create(format!("{}.fastq.gz", name))
+                .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
+                .map(bio::io::fastq::Writer::new)
+                .unwrap(),
+        }
+    } else {
+        OutputFile::Fastq {
+            read: std::fs::File::create(format!("{}.fastq", name))
+                .map(bio::io::fastq::Writer::new)
+                .unwrap(),
+        }
     }
 }
 
@@ -104,6 +122,12 @@ struct Opts {
         \n"
     )]
     ru_in: Vec<String>,
+    #[clap(
+        long,
+        help = "Compress output files with gzip. By default turned off to encourage use of external compression (see Readme).
+        \n "
+    )]
+    gzip: bool,
 }
 
 // Writes record with properly inserted UMI to Output file
@@ -142,8 +166,8 @@ fn main() {
     let ru = read_fastq(&args.ru_in[0]).records();
 
     // Create write files.
-    let mut write_file_r1 = output_file(&format!("{}1", &args.prefix));
-    let mut write_file_r2 = output_file(&format!("{}2", &args.prefix));
+    let mut write_file_r1 = output_file(&format!("{}1", &args.prefix), args.gzip);
+    let mut write_file_r2 = output_file(&format!("{}2", &args.prefix), args.gzip);
 
     println!("Transfering UMIs to records...");
 
