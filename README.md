@@ -3,6 +3,10 @@ A tool for transfering Unique Molecular Identifiers (UMIs).
 
 The UMIs are given as a fastq file and will be transferred, explaining the name umi-transfer, to the
 header of the first two fastq files.
+## Background
+Common demultiplexing softwares return a separate fastq file, usually named `R2`, containing UMIs.
+However, common analysis tools does not allow for this and instead requires the UMI to be contained within the header of the two reads in the pair.
+This tools performs this transform in an efficient manner and can also conveniently rename the oddly named read-`3` to read-`2` which is probably more widely recognized.
 
 ## Installation
 
@@ -116,5 +120,13 @@ It's good practice to remove the FIFOs after the program has finished:
 rm read*.fastq output*.fastq
 ```
 ## For developers
+To make modifications to `umi-transfer`, clone this repository, make your changes and then run the code with
+```shell
+cargo run -- <parameters>
+```
+or build the executable with
+```shell
+cargo build --release
+```
 
-Go to the directory with the tool and type in `cargo build` .
+Please make sure to activate code formatting by `rust-analyzer`.
