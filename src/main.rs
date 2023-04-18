@@ -1,4 +1,5 @@
 use clap::Parser;
+use file_format::FileFormat;
 use itertools::izip;
 use std::iter::Iterator;
 
@@ -49,9 +50,10 @@ impl OutputFile {
     }
 }
 
-// Read input file to Reader. Automatically scans if gzipped from .gz suffix
+// Read input file to Reader. Automatically scans if gzipped from file-format crate
 fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>> {
-    if path.ends_with(".gz") {
+    let format = FileFormat::from_file(path).unwrap();
+    if format == FileFormat::Gzip {
         bio::io::fastq::Reader::new(ReadFile::Gzip(
             std::fs::File::open(path)
                 .map(std::io::BufReader::new)
@@ -59,6 +61,7 @@ fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>
                 .unwrap(),
         ))
     } else {
+        // If not gzipped, read as plain fastq
         bio::io::fastq::Reader::new(ReadFile::Fastq(std::fs::File::open(path).unwrap()))
     }
 }
