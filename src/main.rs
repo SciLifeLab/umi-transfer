@@ -87,7 +87,7 @@ fn output_file(name: &str, gz: bool) -> OutputFile {
 #[derive(clap::Parser)]
 #[clap(
     version = "0.2.0",
-    author = "Judit Hohenthal, Matthias Zepper, Johannes Alneberg",
+    author = "Written by Judit Hohenthal, Matthias Zepper, Johannes Alneberg",
     about = "A tool for transfering Unique Molecular Identifiers (UMIs). \n\nThe UMIs are given as a fastq file and will be transferred, explaining the name umi-transfer, to the header of the first two fastq files. \n\n"
 )]
 struct Opts {
