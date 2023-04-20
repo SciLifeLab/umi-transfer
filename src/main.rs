@@ -1,6 +1,6 @@
 use clap::Parser;
 
-pub mod file_io;
+mod file_io;
 mod umi_external;
 
 #[derive(clap::Parser)]
@@ -9,7 +9,7 @@ mod umi_external;
     author = "Written by Judit Hohenthal, Matthias Zepper, Johannes Alneberg",
     about = "A tool for transfering Unique Molecular Identifiers (UMIs). \n\nThe UMIs are given as a fastq file and will be transferred, explaining the name umi-transfer, to the header of the first two fastq files. \n\n"
 )]
-struct Opts {
+pub struct Opts {
     #[clap(
         long,
         default_value = "output",

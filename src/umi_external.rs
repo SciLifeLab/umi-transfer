@@ -1,8 +1,8 @@
 use itertools::izip;
 
-use file_io;
+use super::file_io;
 
-pub fn run(args: clap::Opts) {
+pub fn run(args: super::Opts) {
     // Enables editing id in output file 2 if --edit-nr flag was included
     let mut edit_nr = false;
     if args.edit_nr {
