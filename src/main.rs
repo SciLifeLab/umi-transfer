@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 
 mod file_io;
+mod umi_errors;
 mod umi_external;
 
 #[derive(clap::Parser)]
