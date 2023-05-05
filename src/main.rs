@@ -33,7 +33,7 @@ enum Subcommand {
 
 fn main() {
     let opt: Opt = Opt::parse();
-    timedrun("umi-transfer finished ", || {
+    timedrun("umi-transfer finished", || {
         let res = match opt.cmd {
             Subcommand::External(arg) => {
                 umi_external::run(arg).context("Failed to include the UMIs")

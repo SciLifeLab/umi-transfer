@@ -1,4 +1,5 @@
 use file_format::FileFormat;
+use std::path::PathBuf;
 
 // Defining types for simplicity
 type File = std::fs::File;
@@ -48,7 +49,7 @@ impl OutputFile {
 }
 
 // Read input file to Reader. Automatically scans if gzipped from file-format crate
-pub fn read_fastq(path: &str) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>> {
+pub fn read_fastq(path: &PathBuf) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>> {
     let format = FileFormat::from_file(path).unwrap();
     if format == FileFormat::Gzip {
         bio::io::fastq::Reader::new(ReadFile::Gzip(
