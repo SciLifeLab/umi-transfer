@@ -1,10 +1,55 @@
 use anyhow::{anyhow, Context, Result};
+use clap::Parser;
 use itertools::izip;
+use std::path::PathBuf;
 
 use super::file_io;
 use crate::umi_errors::RuntimeErrors;
+#[derive(Debug, Parser)]
+pub struct OptsExternal {
+    #[clap(
+        long,
+        default_value = "output",
+        help = "Prefix for output files, omitted flag will result in default value.
+        \n "
+    )]
+    prefix: String,
+    #[clap(
+        long,
+        help = "Automatically change '3' into '2' in sequence header of output file from R3.
+        \n "
+    )]
+    edit_nr: bool,
+    #[clap(
+        long,
+        required = true,
+        help = "[REQUIRED] Input file 1 with reads.
+    \n "
+    )]
+    r1_in: Vec<String>,
+    #[clap(
+        long,
+        required = true,
+        help = "[REQUIRED] Input file 2 with reads.
+    \n "
+    )]
+    r2_in: Vec<String>,
+    #[clap(
+        long,
+        required = true,
+        help = "[REQUIRED] Input file with UMI.
+        \n"
+    )]
+    ru_in: Vec<String>,
+    #[clap(
+        long,
+        help = "Compress output files with gzip. By default turned off to encourage use of external compression (see Readme).
+        \n "
+    )]
+    gzip: bool,
+}
 
-pub fn run(args: super::Opts) -> Result<()> {
+pub fn run(args: OptsExternal) -> Result<()> {
     // Enables editing id in output file 2 if --edit-nr flag was included
     let mut edit_nr = false;
     if args.edit_nr {
