@@ -1,6 +1,6 @@
 [package]
 name = "umi-transfer"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,7 +8,8 @@ edition = "2021"
 [dependencies]
 clap = { version = "3.2.10", features = ["derive"] }
 bio = "0.41.0"
-regex = "1.6.0"
 lazy_static = "1.4"
 indicatif = "0.17.0"
 flate2 = "1.0.24"
+itertools = "0.10.5"
+file-format = "0.7.0"
