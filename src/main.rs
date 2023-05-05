@@ -1,13 +1,15 @@
+use anyhow::{Context, Result};
 use clap::Parser;
 
 mod file_io;
+mod umi_errors;
 mod umi_external;
 
 #[derive(clap::Parser)]
 #[clap(
     version = "0.2.0",
     author = "Written by Judit Hohenthal, Matthias Zepper, Johannes Alneberg",
-    about = "A tool for transfering Unique Molecular Identifiers (UMIs). \n\nThe UMIs are given as a fastq file and will be transferred, explaining the name umi-transfer, to the header of the first two fastq files. \n\n"
+    about = "A tool for transferring Unique Molecular Identifiers (UMIs). \n\nThe UMIs are given as a fastq file and will be transferred, explaining the name umi-transfer, to the header of the first two fastq files. \n\n"
 )]
 pub struct Opts {
     #[clap(
@@ -52,9 +54,10 @@ pub struct Opts {
     gzip: bool,
 }
 
-fn main() {
-    // Parse commandline arguments
+fn main() -> Result<()> {
+    // Parse command line arguments
     let args = Opts::parse();
 
-    umi_external::run(args);
+    umi_external::run(args).context("Failed to include the UMIs")?;
+    Ok(())
 }
