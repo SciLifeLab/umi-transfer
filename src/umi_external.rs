@@ -4,7 +4,7 @@ use itertools::izip;
 use std::path::PathBuf;
 
 use super::file_io;
-use crate::{auxiliary::check_outputpath, umi_errors::RuntimeErrors};
+use crate::{file_io::check_outputpath, umi_errors::RuntimeErrors};
 #[derive(Debug, Parser)]
 pub struct OptsExternal {
     #[clap(
@@ -77,19 +77,19 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     let ru = file_io::read_fastq(&args.ru_in).records();
 
     // If output paths have been specified, check if the are ok to use or use prefix constructors.
-    let output1: PathBuf;
-    let output2: PathBuf;
+    let mut output1: PathBuf = args
+        .r1_out
+        .unwrap_or(PathBuf::from(format!("{}1", &args.prefix)));
+    let mut output2: PathBuf = args
+        .r2_out
+        .unwrap_or(PathBuf::from(format!("{}2", &args.prefix)));
 
-    if args.r1_out.is_some() && args.r2_out.is_some() {
-        output1 = check_outputpath(args.r1_out.unwrap())?;
-        output2 = check_outputpath(args.r2_out.unwrap())?;
-    } else {
-        output1 = check_outputpath(PathBuf::from(format!("{}1", &args.prefix)))?;
-        output2 = check_outputpath(PathBuf::from(format!("{}2", &args.prefix)))?;
-    }
+    // modify if output path according to compression settings and check if exists.
+    output1 = check_outputpath(output1, &args.gzip)?;
+    output2 = check_outputpath(output2, &args.gzip)?;
 
-    let mut write_file_r1 = file_io::output_file(output1, args.gzip);
-    let mut write_file_r2 = file_io::output_file(output2, args.gzip);
+    let mut write_file_r1 = file_io::output_file(output1);
+    let mut write_file_r2 = file_io::output_file(output2);
 
     // Record counter
     let mut counter: i32 = 0;

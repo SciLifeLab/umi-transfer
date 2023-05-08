@@ -1,5 +1,9 @@
+use anyhow::{anyhow, Result};
+use dialoguer::Confirm;
 use file_format::FileFormat;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
+
+use super::umi_errors::RuntimeErrors;
 
 // Defining types for simplicity
 type File = std::fs::File;
@@ -65,9 +69,8 @@ pub fn read_fastq(path: &PathBuf) -> bio::io::fastq::Reader<std::io::BufReader<R
 }
 
 // Create output files
-pub fn output_file(mut name: PathBuf, gz: bool) -> OutputFile {
-    if gz | name.ends_with(".gz") {
-        name.set_extension("fastq.gz");
+pub fn output_file(name: PathBuf) -> OutputFile {
+    if name.ends_with(".gz") {
         OutputFile::Gzip {
             read: std::fs::File::create(name.as_path())
                 .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
@@ -75,7 +78,6 @@ pub fn output_file(mut name: PathBuf, gz: bool) -> OutputFile {
                 .unwrap(),
         }
     } else {
-        name.set_extension("fastq");
         OutputFile::Fastq {
             read: std::fs::File::create(name.as_path())
                 .map(bio::io::fastq::Writer::new)
@@ -101,5 +103,33 @@ pub fn write_to_file(
     } else {
         let header = &[s.id(), ":", std::str::from_utf8(&umi).unwrap()].concat();
         output.write(header, s.desc(), s.clone())
+    }
+}
+
+// Checks whether an output path exists.
+pub fn check_outputpath(mut path: PathBuf, compress: &bool) -> Result<PathBuf> {
+    // handle the compression and adapt file extension.
+    if compress | path.ends_with(".gz") {
+        path.set_extension("fastq.gz");
+    } else {
+        path.set_extension("fastq");
+    }
+
+    // check if the path already exists
+    let exists = fs::metadata(&path).is_ok();
+
+    // return the path of it is ok to write, otherwise an error.
+    if exists {
+        if Confirm::new()
+            .with_prompt(format!("{} exists. Overwrite?", path.display()))
+            .interact()?
+        {
+            println!("File will be overwritten.");
+            return Ok(path);
+        } else {
+            return Err(anyhow!(RuntimeErrors::FileExistsError));
+        }
+    } else {
+        return Ok(path);
     }
 }
