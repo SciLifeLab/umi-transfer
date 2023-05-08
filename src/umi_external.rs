@@ -44,13 +44,6 @@ pub struct OptsExternal {
     )]
     ru_in: PathBuf,
     #[clap(
-        long,
-        default_value = "output",
-        help = "Prefix for output files, omitted flag will result in default value.
-        \n "
-    )]
-    prefix: String,
-    #[clap(
         long = "out",
         help = "Path to FastQ output file for R1.
     \n "
@@ -79,10 +72,10 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     // If output paths have been specified, check if the are ok to use or use prefix constructors.
     let mut output1: PathBuf = args
         .r1_out
-        .unwrap_or(PathBuf::from(format!("{}1", &args.prefix)));
+        .unwrap_or(file_io::append_to_path(&args.r1_in, "_with_UMIs"));
     let mut output2: PathBuf = args
         .r2_out
-        .unwrap_or(PathBuf::from(format!("{}2", &args.prefix)));
+        .unwrap_or(file_io::append_to_path(&args.r2_in, "_with_UMIs"));
 
     // modify if output path according to compression settings and check if exists.
     output1 = check_outputpath(output1, &args.gzip)?;
