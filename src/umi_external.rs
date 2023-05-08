@@ -4,32 +4,31 @@ use itertools::izip;
 use std::path::PathBuf;
 
 use super::file_io;
-use crate::umi_errors::RuntimeErrors;
+use crate::{auxiliary::check_outputpath, umi_errors::RuntimeErrors};
 #[derive(Debug, Parser)]
 pub struct OptsExternal {
     #[clap(
-        long,
-        default_value = "output",
-        help = "Prefix for output files, omitted flag will result in default value.
-        \n "
-    )]
-    prefix: String,
-    #[clap(
-        long,
+        short = 'f',
+        long = "fix_numbers",
         help = "Automatically change '3' into '2' in sequence header of output file from R3.
         \n "
     )]
     edit_nr: bool,
     #[clap(
-        short = '1',
-        long = "in1",
+        short = 'z',
+        long = "gzip",
+        help = "Compress output files with gzip. By default turned off to encourage use of external compression (see Readme).
+        \n "
+    )]
+    gzip: bool,
+    #[clap(
+        long = "in",
         required = true,
         help = "[REQUIRED] Input file 1 with reads.
     \n "
     )]
     r1_in: PathBuf,
     #[clap(
-        short = '2',
         long = "in2",
         required = true,
         help = "[REQUIRED] Input file 2 with reads.
@@ -45,12 +44,24 @@ pub struct OptsExternal {
     )]
     ru_in: PathBuf,
     #[clap(
-        short = 'z',
-        long = "gzip",
-        help = "Compress output files with gzip. By default turned off to encourage use of external compression (see Readme).
+        long,
+        default_value = "output",
+        help = "Prefix for output files, omitted flag will result in default value.
         \n "
     )]
-    gzip: bool,
+    prefix: String,
+    #[clap(
+        long = "out",
+        help = "Path to FastQ output file for R1.
+    \n "
+    )]
+    r1_out: Option<PathBuf>,
+    #[clap(
+        long = "out2",
+        help = "Path to FastQ output file for R2.
+    \n "
+    )]
+    r2_out: Option<PathBuf>,
 }
 
 pub fn run(args: OptsExternal) -> Result<i32> {
@@ -65,9 +76,20 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     let r2 = file_io::read_fastq(&args.r2_in).records();
     let ru = file_io::read_fastq(&args.ru_in).records();
 
-    // Create write files.
-    let mut write_file_r1 = file_io::output_file(&format!("{}1", &args.prefix), args.gzip);
-    let mut write_file_r2 = file_io::output_file(&format!("{}2", &args.prefix), args.gzip);
+    // If output paths have been specified, check if the are ok to use or use prefix constructors.
+    let output1: PathBuf;
+    let output2: PathBuf;
+
+    if args.r1_out.is_some() && args.r2_out.is_some() {
+        output1 = check_outputpath(args.r1_out.unwrap())?;
+        output2 = check_outputpath(args.r2_out.unwrap())?;
+    } else {
+        output1 = check_outputpath(PathBuf::from(format!("{}1", &args.prefix)))?;
+        output2 = check_outputpath(PathBuf::from(format!("{}2", &args.prefix)))?;
+    }
+
+    let mut write_file_r1 = file_io::output_file(output1, args.gzip);
+    let mut write_file_r2 = file_io::output_file(output2, args.gzip);
 
     // Record counter
     let mut counter: i32 = 0;

@@ -65,17 +65,19 @@ pub fn read_fastq(path: &PathBuf) -> bio::io::fastq::Reader<std::io::BufReader<R
 }
 
 // Create output files
-pub fn output_file(name: &str, gz: bool) -> OutputFile {
-    if gz {
+pub fn output_file(mut name: PathBuf, gz: bool) -> OutputFile {
+    if gz | name.ends_with(".gz") {
+        name.set_extension("fastq.gz");
         OutputFile::Gzip {
-            read: std::fs::File::create(format!("{}.fastq.gz", name))
+            read: std::fs::File::create(name.as_path())
                 .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
                 .map(bio::io::fastq::Writer::new)
                 .unwrap(),
         }
     } else {
+        name.set_extension("fastq");
         OutputFile::Fastq {
-            read: std::fs::File::create(format!("{}.fastq", name))
+            read: std::fs::File::create(name.as_path())
                 .map(bio::io::fastq::Writer::new)
                 .unwrap(),
         }
