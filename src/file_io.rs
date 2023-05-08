@@ -133,3 +133,12 @@ pub fn check_outputpath(mut path: PathBuf, compress: &bool) -> Result<PathBuf> {
         return Ok(path);
     }
 }
+
+// probably, there is a better way to do this than with two copies ?!?
+pub fn append_to_path(path: &PathBuf, string: &str) -> PathBuf {
+    let mut stem = path.to_owned();
+    stem.set_extension("");
+    let mut p_osstr = stem.as_os_str().to_owned();
+    p_osstr.push(string);
+    p_osstr.into()
+}
