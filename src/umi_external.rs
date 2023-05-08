@@ -64,22 +64,46 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         edit_nr = true;
     }
 
-    // Create fastq record iterators from input files
-    let r1 = file_io::read_fastq(&args.r1_in).records();
-    let r2 = file_io::read_fastq(&args.r2_in).records();
-    let ru = file_io::read_fastq(&args.ru_in).records();
+    // Read FastQ records from input files
+    let r1 = file_io::read_fastq(&args.r1_in)
+        .with_context(|| {
+            format!(
+                "Failed to read records from {}",
+                &args.r1_in.to_string_lossy()
+            )
+        })?
+        .records();
+    let r2 = file_io::read_fastq(&args.r2_in)
+        .with_context(|| {
+            format!(
+                "Failed to read records from {}",
+                &args.r2_in.to_string_lossy()
+            )
+        })?
+        .records();
+    let ru = file_io::read_fastq(&args.ru_in)
+        .with_context(|| {
+            format!(
+                "Failed to read records from {}",
+                &args.ru_in.to_string_lossy()
+            )
+        })?
+        .records();
 
     // If output paths have been specified, check if the are ok to use or use prefix constructors.
     let mut output1: PathBuf = args
         .r1_out
-        .unwrap_or(file_io::append_to_path(&args.r1_in, "_with_UMIs"));
+        .unwrap_or(file_io::append_umi_to_path(&args.r1_in));
     let mut output2: PathBuf = args
         .r2_out
-        .unwrap_or(file_io::append_to_path(&args.r2_in, "_with_UMIs"));
+        .unwrap_or(file_io::append_umi_to_path(&args.r2_in));
 
     // modify if output path according to compression settings and check if exists.
     output1 = check_outputpath(output1, &args.gzip)?;
     output2 = check_outputpath(output2, &args.gzip)?;
+
+    println!("Output 1 will be saved to: {}", output1.to_string_lossy());
+    println!("Output 2 will be saved to: {}", output2.to_string_lossy());
 
     let mut write_file_r1 = file_io::output_file(output1);
     let mut write_file_r2 = file_io::output_file(output2);
@@ -91,24 +115,9 @@ pub fn run(args: OptsExternal) -> Result<i32> {
 
     // Iterate over records in input files
     for (r1_rec_res, ru_rec_res, r2_rec_res) in izip!(r1, ru, r2) {
-        let r1_rec = r1_rec_res.with_context(|| {
-            format!(
-                "Failed to read records from {}",
-                &args.r1_in.to_string_lossy()
-            )
-        })?;
-        let r2_rec = r2_rec_res.with_context(|| {
-            format!(
-                "Failed to read records from {}",
-                &args.r2_in.to_string_lossy()
-            )
-        })?;
-        let ru_rec = ru_rec_res.with_context(|| {
-            format!(
-                "Failed to read records from {}",
-                &args.ru_in.to_string_lossy()
-            )
-        })?;
+        let r1_rec = r1_rec_res?;
+        let r2_rec = r2_rec_res?;
+        let ru_rec = ru_rec_res?;
 
         // Step counter
         counter += 1;

@@ -1,9 +1,9 @@
-use anyhow::{anyhow, Result};
+use super::umi_errors::RuntimeErrors;
+use anyhow::{anyhow, Context, Result};
 use dialoguer::Confirm;
 use file_format::FileFormat;
+use regex::Regex;
 use std::{fs, path::PathBuf};
-
-use super::umi_errors::RuntimeErrors;
 
 // Defining types for simplicity
 type File = std::fs::File;
@@ -52,19 +52,26 @@ impl OutputFile {
     }
 }
 
-// Read input file to Reader. Automatically scans if gzipped from file-format crate
-pub fn read_fastq(path: &PathBuf) -> bio::io::fastq::Reader<std::io::BufReader<ReadFile>> {
-    let format = FileFormat::from_file(path).unwrap();
+// Read input file to Reader. Automatically scans if input is compressed with file-format crate.
+pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufReader<ReadFile>>> {
+    if fs::metadata(&path).is_err() {
+        return Err(anyhow!(RuntimeErrors::FileNotFoundError));
+    }
+
+    let format = FileFormat::from_file(path).context("Failed to determine file format")?;
     if format == FileFormat::Gzip {
-        bio::io::fastq::Reader::new(ReadFile::Gzip(
+        Ok(bio::io::fastq::Reader::new(ReadFile::Gzip(
             std::fs::File::open(path)
                 .map(std::io::BufReader::new)
                 .map(flate2::bufread::MultiGzDecoder::new)
-                .unwrap(),
-        ))
+                .with_context(|| format!("Failed to open file: {:?}", path))?,
+        )))
     } else {
         // If not gzipped, read as plain fastq
-        bio::io::fastq::Reader::new(ReadFile::Fastq(std::fs::File::open(path).unwrap()))
+        Ok(bio::io::fastq::Reader::new(ReadFile::Fastq(
+            std::fs::File::open(path)
+                .with_context(|| format!("Failed to open file: {:?}", path))?,
+        )))
     }
 }
 
@@ -108,11 +115,13 @@ pub fn write_to_file(
 
 // Checks whether an output path exists.
 pub fn check_outputpath(mut path: PathBuf, compress: &bool) -> Result<PathBuf> {
-    // handle the compression and adapt file extension.
-    if compress | path.ends_with(".gz") {
-        path.set_extension("fastq.gz");
-    } else {
-        path.set_extension("fastq");
+    // handle the compression and adapt file extension if necessary.
+    if compress & !path.ends_with(".gz") {
+        if let Some(extension) = path.extension() {
+            let mut new_extension = extension.to_str().unwrap_or("").to_owned();
+            new_extension.push_str(".gz");
+            path.set_extension(new_extension);
+        }
     }
 
     // check if the path already exists
@@ -134,11 +143,9 @@ pub fn check_outputpath(mut path: PathBuf, compress: &bool) -> Result<PathBuf> {
     }
 }
 
-// probably, there is a better way to do this than with two copies ?!?
-pub fn append_to_path(path: &PathBuf, string: &str) -> PathBuf {
-    let mut stem = path.to_owned();
-    stem.set_extension("");
-    let mut p_osstr = stem.as_os_str().to_owned();
-    p_osstr.push(string);
-    p_osstr.into()
+pub fn append_umi_to_path(path: &PathBuf) -> PathBuf {
+    let path_str = path.as_os_str().clone().to_string_lossy();
+    let re = Regex::new(r"^(?P<stem>\.*[^\.]+)\.(?P<extension>.*)$").unwrap();
+    let new_path_str = re.replace(&path_str, "${stem}_with_UMIs.${extension}");
+    PathBuf::from(new_path_str.to_string())
 }

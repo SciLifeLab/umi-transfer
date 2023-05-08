@@ -1,6 +1,6 @@
 extern crate core;
 
-use anyhow::{Context, Result};
+use anyhow::{Context};
 use clap::Parser;
 
 use crate::auxiliary::timedrun;
