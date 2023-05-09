@@ -1,6 +1,6 @@
 extern crate core;
 
-use anyhow::{Context};
+use anyhow::Context;
 use clap::Parser;
 
 use crate::auxiliary::timedrun;
@@ -14,8 +14,8 @@ mod umi_external;
 #[derive(clap::Parser)]
 #[clap(
     version = "0.2.0",
-    author = "Written by Judit Hohenthal, Matthias Zepper, Johannes Alneberg",
-    about = "A tool for transferring Unique Molecular Identifiers (UMIs). \n\nThe UMIs are given as a fastq file and will be transferred, explaining the name umi-transfer, to the header of the first two fastq files. \n\n"
+    author = "Written by Judit Hohenthal, Matthias Zepper & Johannes Alneberg",
+    about = "A tool for transferring Unique Molecular Identifiers (UMIs).\n\nMost tools capable of using UMIs to increase the accuracy of quantitative DNA sequencing experiments expect the respective UMI sequence to be embedded into the reads' IDs.\n\n You can use `umi-transfer external` to retrieve UMIs from a separate FastQ file and embed them to the IDs of your paired FastQ files.\n\n"
 )]
 
 pub struct Opt {
