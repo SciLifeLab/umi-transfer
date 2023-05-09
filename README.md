@@ -104,12 +104,12 @@ Note the trailing `&` to leave these processes running in the background. We can
 ```shell
 $ ls -lh
 total 1.5K
--rw-rw----. 1 alneberg ngi2016004 4.5G Apr 13 12:18 read1.fastq.gz
--rw-rw----. 1 alneberg ngi2016004 1.1G Apr 13 12:18 read2.fastq.gz
--rw-rw----. 1 alneberg ngi2016004 4.5G Apr 13 12:18 read3.fastq.gz
-prw-rw-r--. 1 alneberg ngi2016004    0 Apr 13 12:46 read1.fastq
-prw-rw-r--. 1 alneberg ngi2016004    0 Apr 13 12:46 read2.fastq
-prw-rw-r--. 1 alneberg ngi2016004    0 Apr 13 12:46 read3.fastq
+-rw-rw----. 1 alneberg ngisweden 4.5G Apr 13 12:18 read1.fastq.gz
+-rw-rw----. 1 alneberg ngisweden 1.1G Apr 13 12:18 read2.fastq.gz
+-rw-rw----. 1 alneberg ngisweden 4.5G Apr 13 12:18 read3.fastq.gz
+prw-rw-r--. 1 alneberg ngisweden    0 Apr 13 12:46 read1.fastq
+prw-rw-r--. 1 alneberg ngisweden    0 Apr 13 12:46 read2.fastq
+prw-rw-r--. 1 alneberg ngisweden    0 Apr 13 12:46 read3.fastq
 ```
 
 We continue to create corresponding FIFOs for the output files (note that the filenames need to match the value given to `--prefix`)
@@ -128,7 +128,7 @@ The optimal value for this depends on several factors and for optimal performanc
 We can then run the `umi-transfer` program as follows:
 
 ```shell
-umi-transfer --prefix output --edit-nr --r1-in read1.fastq --r2-in read3.fastq --ru-in read2.fastq
+umi-transfer --in read1.fastq --in2 read3.fastq --umi read2.fastq --out output1.fastq --out2 output2.fastq
 ```
 
 It's good practice to remove the FIFOs after the program has finished:
@@ -139,16 +139,8 @@ rm read*.fastq output*.fastq
 
 ## For developers
 
-To make modifications to `umi-transfer`, clone this repository, make your changes and then run the code with
+`umi-transfer` is a free and open-source software developed and maintained by scientists of the [Swedish National Genomics Infrastructure](https://ngisweden.scilifelab.se). We gladly welcome suggestions for improvement, bug reports and code contributions.
 
-```shell
-cargo run -- <parameters>
-```
+If you'd like to contribute code, the best way to get started is to create a personal fork of the repository. Subsequently, use a new branch to develop your feature or contribute your bug fix. Ideally, use a code linter like `rust-analyzer` in your code editor.
 
-or build the executable with
-
-```shell
-cargo build --release
-```
-
-Please make sure to activate code formatting by `rust-analyzer`.
+Before developing a new feature, we recommend opening an issue on the main repository to discuss your proposal upfront. Once you're ready, simply open a pull request to the `dev` branch and we'll happily review your changes. Thanks for your interest in contributing to `umi-transfer`.
