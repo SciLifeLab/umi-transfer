@@ -8,9 +8,9 @@ use crate::{file_io::check_outputpath, umi_errors::RuntimeErrors};
 #[derive(Debug, Parser)]
 pub struct OptsExternal {
     #[clap(
-        short = 'f',
-        long = "fix_numbers",
-        help = "Automatically change '3' into '2' in sequence header of output file from R3.
+        short = 'c',
+        long = "correct_numbers",
+        help = "Ensure read numbers 1 and 2 in sequence header of output files.
         \n "
     )]
     edit_nr: bool,
@@ -21,6 +21,20 @@ pub struct OptsExternal {
         \n "
     )]
     gzip: bool,
+    #[clap(
+        short = 'f',
+        long = "force",
+        help = "Overwrite existing output files without further warnings or prompts.
+        \n "
+    )]
+    force: bool,
+    #[clap(
+        short = 'd',
+        long = "delim",
+        help = "Delimiter to use when joining the UMIs to the read name. Defaults to `:`.
+        \n "
+    )]
+    delim: Option<String>,
     #[clap(
         long = "in",
         required = true,
@@ -99,8 +113,8 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         .unwrap_or(file_io::append_umi_to_path(&args.r2_in));
 
     // modify if output path according to compression settings and check if exists.
-    output1 = check_outputpath(output1, &args.gzip)?;
-    output2 = check_outputpath(output2, &args.gzip)?;
+    output1 = check_outputpath(output1, &args.gzip, &args.force)?;
+    output2 = check_outputpath(output2, &args.gzip, &args.force)?;
 
     println!("Output 1 will be saved to: {}", output1.to_string_lossy());
     println!("Output 2 will be saved to: {}", output2.to_string_lossy());
@@ -123,15 +137,29 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         counter += 1;
 
         if r1_rec.id().eq(ru_rec.id()) {
-            // Write to Output file (never edit nr for R1)
-            write_file_r1 = file_io::write_to_file(r1_rec, write_file_r1, &ru_rec.seq(), false);
+            // Write to Output file
+            let read_nr = if edit_nr { Some(1) } else { None };
+            write_file_r1 = file_io::write_to_file(
+                r1_rec,
+                write_file_r1,
+                &ru_rec.seq(),
+                args.delim.as_ref(),
+                read_nr,
+            );
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatchError));
         }
 
         if r2_rec.id().eq(ru_rec.id()) {
-            // Write to Output file (edit nr for R2 if --edit-nr flag was included)
-            write_file_r2 = file_io::write_to_file(r2_rec, write_file_r2, &ru_rec.seq(), edit_nr);
+            // Write to Output file
+            let read_nr = if edit_nr { Some(2) } else { None };
+            write_file_r2 = file_io::write_to_file(
+                r2_rec,
+                write_file_r2,
+                &ru_rec.seq(),
+                args.delim.as_ref(),
+                read_nr,
+            );
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatchError));
         }

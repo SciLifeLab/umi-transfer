@@ -77,14 +77,25 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
 
 // Create output files
 pub fn output_file(name: PathBuf) -> OutputFile {
-    if name.ends_with(".gz") {
-        OutputFile::Gzip {
-            read: std::fs::File::create(name.as_path())
-                .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
-                .map(bio::io::fastq::Writer::new)
-                .unwrap(),
+    if let Some(extension) = name.extension() {
+        if extension == "gz" {
+            // File has gz extension, which has been enforced by check_outputpath() if -z was provided.
+            OutputFile::Gzip {
+                read: std::fs::File::create(name.as_path())
+                    .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
+                    .map(bio::io::fastq::Writer::new)
+                    .unwrap(),
+            }
+        } else {
+            // File has extension but not gz
+            OutputFile::Fastq {
+                read: std::fs::File::create(name.as_path())
+                    .map(bio::io::fastq::Writer::new)
+                    .unwrap(),
+            }
         }
     } else {
+        //file has no extension. Assume plain-text.
         OutputFile::Fastq {
             read: std::fs::File::create(name.as_path())
                 .map(bio::io::fastq::Writer::new)
@@ -98,27 +109,29 @@ pub fn write_to_file(
     input: bio::io::fastq::Record,
     output: OutputFile,
     umi: &[u8],
-    edit_nr: bool,
+    umi_sep: Option<&String>,
+    edit_nr: Option<u8>,
 ) -> OutputFile {
     let s = input;
-    if edit_nr {
-        let header = &[s.id(), ":", std::str::from_utf8(&umi).unwrap()].concat();
+    let delim = umi_sep.as_ref().map(|s| s.as_str()).unwrap_or(":"); // the delimiter for the UMI
+    if let Some(number) = edit_nr {
+        let header = &[s.id(), delim, std::str::from_utf8(&umi).unwrap()].concat();
         let mut string = String::from(s.desc().unwrap());
-        string.replace_range(0..1, "2");
+        string.replace_range(0..1, &number.to_string());
         let desc: Option<&str> = Some(&string);
         output.write(header, desc, s)
     } else {
-        let header = &[s.id(), ":", std::str::from_utf8(&umi).unwrap()].concat();
+        let header = &[s.id(), delim, std::str::from_utf8(&umi).unwrap()].concat();
         output.write(header, s.desc(), s.clone())
     }
 }
 
 // Checks whether an output path exists.
-pub fn check_outputpath(mut path: PathBuf, compress: &bool) -> Result<PathBuf> {
+pub fn check_outputpath(mut path: PathBuf, compress: &bool, force: &bool) -> Result<PathBuf> {
     // handle the compression and adapt file extension if necessary.
-    if compress & !path.ends_with(".gz") {
-        if let Some(extension) = path.extension() {
-            let mut new_extension = extension.to_str().unwrap_or("").to_owned();
+    if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
+        if !extension.ends_with("gz") & compress {
+            let mut new_extension = extension.to_owned();
             new_extension.push_str(".gz");
             path.set_extension(new_extension);
         }
@@ -128,7 +141,8 @@ pub fn check_outputpath(mut path: PathBuf, compress: &bool) -> Result<PathBuf> {
     let exists = fs::metadata(&path).is_ok();
 
     // return the path of it is ok to write, otherwise an error.
-    if exists {
+    if exists & !force {
+        // force will disable prompt, but not the check.
         if Confirm::new()
             .with_prompt(format!("{} exists. Overwrite?", path.display()))
             .interact()?
