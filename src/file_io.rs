@@ -12,16 +12,16 @@ type Gzip = flate2::bufread::MultiGzDecoder<Fastq>;
 
 // Enum for the two acceptable input file formats: '.fastq' and '.fastq.gz'
 pub enum ReadFile {
-    Fastq(File),
-    Gzip(Gzip),
+    Fastq(std::io::BufReader<File>),
+    Gzip(Box<Gzip>),
 }
 
 // Implement read for ReadFile enum
 impl std::io::Read for ReadFile {
     fn read(&mut self, into: &mut [u8]) -> std::io::Result<usize> {
         match self {
-            ReadFile::Fastq(file) => file.read(into),
-            ReadFile::Gzip(file) => file.read(into),
+            ReadFile::Fastq(buf_reader) => buf_reader.read(into),
+            ReadFile::Gzip(buf_reader) => buf_reader.read(into),
         }
     }
 }
@@ -54,25 +54,24 @@ impl OutputFile {
 
 // Read input file to Reader. Automatically scans if input is compressed with file-format crate.
 pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufReader<ReadFile>>> {
-    if fs::metadata(path).is_err() {
-        return Err(anyhow!(RuntimeErrors::FileNotFoundError));
-    }
+    fs::metadata(path).map_err(|_| anyhow!(RuntimeErrors::FileNotFoundError))?;
 
     let format = FileFormat::from_file(path).context("Failed to determine file format")?;
-    if format == FileFormat::Gzip {
-        Ok(bio::io::fastq::Reader::new(ReadFile::Gzip(
-            std::fs::File::open(path)
+    let reader: ReadFile = match format {
+        FileFormat::Gzip => {
+            let file = File::open(path)
                 .map(std::io::BufReader::new)
-                .map(flate2::bufread::MultiGzDecoder::new)
-                .with_context(|| format!("Failed to open file: {:?}", path))?,
-        )))
-    } else {
-        // If not gzipped, read as plain fastq
-        Ok(bio::io::fastq::Reader::new(ReadFile::Fastq(
-            std::fs::File::open(path)
-                .with_context(|| format!("Failed to open file: {:?}", path))?,
-        )))
-    }
+                .with_context(|| format!("Failed to open file: {:?}", path))?;
+            ReadFile::Gzip(Box::new(flate2::bufread::MultiGzDecoder::new(file)))
+        }
+        _ => {
+            let file =
+                File::open(path).with_context(|| format!("Failed to open file: {:?}", path))?;
+            ReadFile::Fastq(std::io::BufReader::new(file))
+        }
+    };
+
+    Ok(bio::io::fastq::Reader::new(reader))
 }
 
 // Create output files
