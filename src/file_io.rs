@@ -3,7 +3,7 @@ use anyhow::{anyhow, Context, Result};
 use dialoguer::Confirm;
 use file_format::FileFormat;
 use regex::Regex;
-use std::{fs, path::PathBuf};
+use std::{fs, path::Path, path::PathBuf};
 
 // Defining types for simplicity
 type File = std::fs::File;
@@ -54,7 +54,7 @@ impl OutputFile {
 
 // Read input file to Reader. Automatically scans if input is compressed with file-format crate.
 pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufReader<ReadFile>>> {
-    if fs::metadata(&path).is_err() {
+    if fs::metadata(path).is_err() {
         return Err(anyhow!(RuntimeErrors::FileNotFoundError));
     }
 
@@ -115,13 +115,13 @@ pub fn write_to_file(
     let s = input;
     let delim = umi_sep.as_ref().map(|s| s.as_str()).unwrap_or(":"); // the delimiter for the UMI
     if let Some(number) = edit_nr {
-        let header = &[s.id(), delim, std::str::from_utf8(&umi).unwrap()].concat();
+        let header = &[s.id(), delim, std::str::from_utf8(umi).unwrap()].concat();
         let mut string = String::from(s.desc().unwrap());
         string.replace_range(0..1, &number.to_string());
         let desc: Option<&str> = Some(&string);
         output.write(header, desc, s)
     } else {
-        let header = &[s.id(), delim, std::str::from_utf8(&umi).unwrap()].concat();
+        let header = &[s.id(), delim, std::str::from_utf8(umi).unwrap()].concat();
         output.write(header, s.desc(), s.clone())
     }
 }
@@ -148,17 +148,17 @@ pub fn check_outputpath(mut path: PathBuf, compress: &bool, force: &bool) -> Res
             .interact()?
         {
             println!("File will be overwritten.");
-            return Ok(path);
+            Ok(path)
         } else {
-            return Err(anyhow!(RuntimeErrors::FileExistsError));
+            Err(anyhow!(RuntimeErrors::FileExistsError))
         }
     } else {
-        return Ok(path);
+        Ok(path)
     }
 }
 
-pub fn append_umi_to_path(path: &PathBuf) -> PathBuf {
-    let path_str = path.as_os_str().clone().to_string_lossy();
+pub fn append_umi_to_path(path: &Path) -> PathBuf {
+    let path_str = path.as_os_str().to_string_lossy();
     let re = Regex::new(r"^(?P<stem>\.*[^\.]+)\.(?P<extension>.*)$").unwrap();
     let new_path_str = re.replace(&path_str, "${stem}_with_UMIs.${extension}");
     PathBuf::from(new_path_str.to_string())

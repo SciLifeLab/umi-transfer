@@ -142,7 +142,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
             write_file_r1 = file_io::write_to_file(
                 r1_rec,
                 write_file_r1,
-                &ru_rec.seq(),
+                ru_rec.seq(),
                 args.delim.as_ref(),
                 read_nr,
             );
@@ -156,7 +156,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
             write_file_r2 = file_io::write_to_file(
                 r2_rec,
                 write_file_r2,
-                &ru_rec.seq(),
+                ru_rec.seq(),
                 args.delim.as_ref(),
                 read_nr,
             );
