@@ -1,6 +1,21 @@
-# umi-transfer
+<div style="background: #3f3f3f; color: #efefef; text-align: right; width: 100%; margin-bottom: 5em;">
+   <img src="docs/img/scilifelab.png" alt="The SciLifeLab logo" style="width:250px;height:54px;margin:0.5em"> 
+   <img src="docs/img/ngi_dark.png" alt="The logo of the National Genomics Infrastructure" style="width:200px;height:63px;margin:0.5em">
+</div>
 
-A tool for transferring Unique Molecular Identifiers (UMIs) provided as separate FastQ file to the header of records in paired FastQ files.
+<p>
+    <h1 style="text-align:center;color:#a7c947;scale:1.3">umi-transfer</h1>
+    <b>A command line tool for transferring Unique Molecular Identifiers (UMIs) provided as separate FastQ file to the header of records in paired FastQ files.</b>
+</p>
+<hr style="margin-top: 2em;">
+
+- [Background on Unique Molecular Identifiers](#background)
+- [Installing `umi-transfer`](#installation)
+- [Using `umi-transfer` to integrate UMIs](#usage)
+- [Improving performance with external multi-threaded compression](#high-performance-guide)
+- [Contributing bugfixes and new features](#contribution-guide-for-developers)
+
+<hr style="margin-bottom: 5em;">
 
 ## Background
 
@@ -35,7 +50,9 @@ umi-transfer 0.2.0
 >
 >The decompression and compression used within umi-transfer is single-threaded, so to get the most reads per minute performance, see the [high performance guide](#high-performance-guide)
 
-The tool requires three FastQ files as input. You can manually specify the names and location of the output files with `--out` and `--out2` or the tool will append a `with_UMI` suffix to your input file names as output. It additionally accepts to choose a custom UMI delimiter with `--delim` and to set the flags `-f`, `-c` and `-z`. The latter specifies to compress the output and `-c` is used to ensure `1` and `2` as read numbers in the output. `-f` / `--force` will overwrite existing output files without prompting the user.
+The tool requires three FastQ files as input. You can manually specify the names and location of the output files with `--out` and `--out2` or the tool will append a `with_UMI` suffix to your input file names as output. It additionally accepts to choose a custom UMI delimiter with `--delim` and to set the flags `-f`, `-c` and `-z`.
+
+`-c` is used to ensure the canonical `1` and `2` of paired files as read numbers in the output, regardless of the read numbers of the input reads. `-f` / `--force` will overwrite existing output files without prompting the user and `-c` enables the internal single-threaded compression of the output files. Alternatively, you can also specify an output file name with `.gz` suffix to obtain compressed output.
 
 ```raw
 $ umi-transfer external --help
@@ -46,7 +63,7 @@ USAGE:
     umi-transfer external [OPTIONS] --in <R1_IN> --in2 <R2_IN> --umi <RU_IN>
 
 OPTIONS:
-    -c, --correct_numbers    Ensure read numbers 1 and 2 in sequence header of output files.
+    -c, --correct_numbers    Read numbers will be altered to ensure the canonical read numbers 1 and 2 in output file sequence headers.
 
     -d, --delim <DELIM>      Delimiter to use when joining the UMIs to the read name. Defaults to `:`.
 
@@ -67,20 +84,20 @@ OPTIONS:
 
     -u, --umi <RU_IN>        [REQUIRED] Input file with UMI.
 
-    -z, --gzip               Compress output files with gzip. By default turned off to encourage use
-                             of external compression (see Readme).
+    -z, --gzip               Compress output files. By default, turned off in favour of external compression.
 ```
 
 ### Example
 
 ```shell
-umi-transfer external -f --in 'R1.fastq' --in2 'R3.fastq' --umi 'R2.fastq'
+umi-transfer external -fz -d '_' --in 'R1.fastq' --in2 'R3.fastq' --umi 'R2.fastq'
 ```
 
 ### High Performance Guide
 
-If you have more than one thread available on your computer and would like to process the read files as quickly as possible we recommend to use unix FIFOs (First In First Out) to handle decompression and compression of the FastQ files.
-This can be done as follows, given that you have your input files compressed as `fastq.gz`, first create FIFOs to represent your uncompressed input files:
+The performance bottleneck of UMI integration is output file compression. [Parallel Gzip](https://github.com/madler/pigz) can be used on modern multi-processor, multi-core machines to significantly outclass the single-threaded compression that ships with `umi-transfer`.
+
+We recommend using Unix FIFOs (First In, First Out buffered pipes) to combine `umi-transfer` and `pigz`:
 
 ```shell
 mkfifo read1.fastq
@@ -88,18 +105,20 @@ mkfifo read2.fastq
 mkfifo read3.fastq
 ```
 
-and then we use `zcat` to decompress our input files and send it to the pipe that the FIFOs represent:
+Assuming your compressed input files are called `read1.fastq.gz` and `read2.fastq.gz` and `read3.fastq.gz`, each can be linked to its respective FIFO like so:
 
 ```shell
-$ zcat read1.fastq.gz > read1.fastq &
+$ pigz -dc read1.fastq.gz > read1.fastq &
 [1] 233387
-$ zcat read2.fastq.gz > read2.fastq &
+$ pigz -dc read2.fastq.gz > read2.fastq &
 [2] 233388
-$ zcat read3.fastq.gz > read3.fastq &
+$ pigz -dc read3.fastq.gz > read3.fastq &
 [3] 233389
 ```
 
-Note the trailing `&` to leave these processes running in the background. We can inspect the directory with `ls`:
+Note the trailing `&` to leave these processes running in the background. Since multi-threading is hardly helpful for decompression, you could also use `zcat` or `gzip -dc` instead of `pigz -dc` here.
+
+We can inspect the directory with `ls` to list the compressed files and the created FIFOs:
 
 ```shell
 $ ls -lh
@@ -112,35 +131,40 @@ prw-rw-r--. 1 alneberg ngisweden    0 Apr 13 12:46 read2.fastq
 prw-rw-r--. 1 alneberg ngisweden    0 Apr 13 12:46 read3.fastq
 ```
 
-We continue to create corresponding FIFOs for the output files (note that the filenames need to match the value given to `--prefix`)
+We continue to create FIFOs for the output files:
 
 ```shell
 $ mkfifo output1.fastq
 $ mkfifo output2.fastq
-$ pigz -p 10 --stdout > output1.fastq.gz < output1.fastq &
+```
+
+and set-up a multi-threaded `pigz` compression process each:
+
+```shell
+$ pigz -p 10 -c > output1.fastq.gz < output1.fastq &
 [4] 233394
-$ pigz -p 10 --stdout > output2.fastq.gz < output2.fastq &
+$ pigz -p 10 -c > output2.fastq.gz < output2.fastq &
 [5] 233395
 ```
 
-The value `10` is how many threads each of the `pigz` processes is allowed to use.
-The optimal value for this depends on several factors and for optimal performance you will have to do some testing on your exact hardware.
-We can then run the `umi-transfer` program as follows:
+The argument `-p 10` specifies the number of threads that each `pigz` processes may use. The optimal setting is hardware-specific and will require some testing.
+
+Finally, we can then run `umi-transfer` using the FIFOs like so:
 
 ```shell
-umi-transfer --in read1.fastq --in2 read3.fastq --umi read2.fastq --out output1.fastq --out2 output2.fastq
+umi-transfer external --in read1.fastq --in2 read3.fastq --umi read2.fastq --out output1.fastq --out2 output2.fastq
 ```
 
 It's good practice to remove the FIFOs after the program has finished:
 
 ```shell
-rm read*.fastq output*.fastq
+rm read1.fastq read2.fastq read3.fastq output1.fastq output2.fastq
 ```
 
-## For developers
+## Contribution guide for developers
 
 `umi-transfer` is a free and open-source software developed and maintained by scientists of the [Swedish National Genomics Infrastructure](https://ngisweden.scilifelab.se). We gladly welcome suggestions for improvement, bug reports and code contributions.
 
 If you'd like to contribute code, the best way to get started is to create a personal fork of the repository. Subsequently, use a new branch to develop your feature or contribute your bug fix. Ideally, use a code linter like `rust-analyzer` in your code editor.
 
-Before developing a new feature, we recommend opening an issue on the main repository to discuss your proposal upfront. Once you're ready, simply open a pull request to the `dev` branch and we'll happily review your changes. Thanks for your interest in contributing to `umi-transfer`.
+Before developing a new feature, we recommend opening an issue on the main repository to discuss your proposal upfront. Once you're ready, simply open a pull request to the `dev` branch and we'll happily review your changes. Thanks for your interest in contributing to `umi-transfer`!
