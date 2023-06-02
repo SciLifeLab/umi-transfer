@@ -2,7 +2,8 @@
 pub enum RuntimeErrors {
     ReadIDMismatchError,
     FileNotFoundError,
-    GeneralError,
+    FileExistsError,
+    //GeneralError,
 }
 
 impl std::fmt::Display for RuntimeErrors {
@@ -12,8 +13,11 @@ impl std::fmt::Display for RuntimeErrors {
                 f,
                 "IDs of UMI and read records mismatch. Please provide sorted files!"
             ),
-            Self::FileNotFoundError => write!(f, "Cannot read from specified path."),
-            Self::GeneralError => write!(f, "Encountered an error."),
+            Self::FileNotFoundError => {
+                write!(f, "Specified file does not exist or is not readable!")
+            }
+            Self::FileExistsError => write!(f, "Output file exists, but must not be overwritten."),
+            //Self::GeneralError => write!(f, "Encountered an error."),
         }
     }
 }
