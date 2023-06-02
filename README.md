@@ -1,13 +1,13 @@
-<div style="background: #3f3f3f; color: #efefef; text-align: right; width: 100%; margin-bottom: 5em;">
-   <img src="docs/img/scilifelab.png" alt="The SciLifeLab logo" style="width:250px;height:54px;margin:0.5em"> 
-   <img src="docs/img/ngi_dark.png" alt="The logo of the National Genomics Infrastructure" style="width:200px;height:63px;margin:0.5em">
-</div>
+
+![umi-transfer](docs/img/logoheader.svg)
+
+# umi-transfer
 
 <p>
-    <h1 style="text-align:center;color:#a7c947;scale:1.3">umi-transfer</h1>
     <b>A command line tool for transferring Unique Molecular Identifiers (UMIs) provided as separate FastQ file to the header of records in paired FastQ files.</b>
 </p>
-<hr style="margin-top: 2em;">
+
+<hr>
 
 - [Background on Unique Molecular Identifiers](#background)
 - [Installing `umi-transfer`](#installation)
@@ -15,7 +15,7 @@
 - [Improving performance with external multi-threaded compression](#high-performance-guide)
 - [Contributing bugfixes and new features](#contribution-guide-for-developers)
 
-<hr style="margin-bottom: 5em;">
+<hr>
 
 ## Background
 
