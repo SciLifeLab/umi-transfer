@@ -10,14 +10,14 @@ pub struct OptsExternal {
     #[clap(
         short = 'c',
         long = "correct_numbers",
-        help = "Ensure read numbers 1 and 2 in sequence header of output files.
+        help = "Read numbers will be altered to ensure the canonical read numbers 1 and 2 in output file sequence headers.
         \n "
     )]
     edit_nr: bool,
     #[clap(
         short = 'z',
         long = "gzip",
-        help = "Compress output files with gzip. By default turned off to encourage use of external compression (see Readme).
+        help = "Compress output files. By default, turned off in favour of external compression.
         \n "
     )]
     gzip: bool,
