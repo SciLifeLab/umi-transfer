@@ -129,10 +129,16 @@ pub fn write_to_file(
 pub fn check_outputpath(mut path: PathBuf, compress: &bool, force: &bool) -> Result<PathBuf> {
     // handle the compression and adapt file extension if necessary.
     if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
-        if !extension.ends_with("gz") & compress {
-            let mut new_extension = extension.to_owned();
-            new_extension.push_str(".gz");
-            path.set_extension(new_extension);
+        if *compress {
+            if !extension.ends_with("gz") {
+                let mut new_extension = extension.to_owned();
+                new_extension.push_str(".gz");
+                path.set_extension(new_extension);
+            }
+        } else {
+            if extension.ends_with("gz") {
+                path.set_extension("");
+            }
         }
     }
 
