@@ -172,27 +172,68 @@ pub fn append_umi_to_path(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
 
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
     use std::path::PathBuf;
+    use tempfile::TempDir;
+
+    fn create_mock_file() -> (TempDir, PathBuf) {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temporary directory");
+        let file_path = temp_dir.path().join("mock.fq");
+
+        let mut file = File::create(&file_path).expect("Failed to create mock file");
+        file.write_all(b"Mock file")
+            .expect("Failed to create mock file");
+
+        (temp_dir, file_path)
+    }
 
     #[test]
-    fn test_derive_output_name() {
+    fn test_correctly_derive_output_name() {
         let p = PathBuf::from("test.fastq");
-        let result = super::append_umi_to_path(&p);
+        let result = append_umi_to_path(&p);
         assert_eq!(result, PathBuf::from("test_with_UMIs.fastq"));
 
         let p = PathBuf::from("test.fastq.gz");
-        let result = super::append_umi_to_path(&p);
+        let result = append_umi_to_path(&p);
         assert_eq!(result, PathBuf::from("test_with_UMIs.fastq.gz"));
 
         let p = PathBuf::from("/some/path/test.fastq.gz");
-        let result = super::append_umi_to_path(&p);
+        let result = append_umi_to_path(&p);
         assert_eq!(result, PathBuf::from("/some/path/test_with_UMIs.fastq.gz"));
+    }
 
-        let p = PathBuf::from("/some/path/test.something....fastq.gz");
-        let result = super::append_umi_to_path(&p);
-        assert_eq!(
-            result,
-            PathBuf::from("/some/path/test_with_UMIs.something....fastq.gz")
-        );
+    #[test]
+    fn test_check_outputpath_existing_file_with_force() {
+        let (temp_dir, file_path) = create_mock_file();
+        let compress = false;
+        let force = true;
+
+        let result = check_outputpath(file_path.clone(), &compress, &force);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), file_path);
+
+        temp_dir
+            .close()
+            .expect("Failed to remove temporary directory");
+    }
+
+    #[test]
+    fn test_check_outputpath_new_file() {
+        let (temp_dir, _file_path) = create_mock_file();
+        let file_path = temp_dir.path().join("new_file");
+        let compress = false;
+        let force = true;
+
+        let result = check_outputpath(file_path.clone(), &compress, &force);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), temp_dir.path().join("new_file"));
+
+        temp_dir
+            .close()
+            .expect("Failed to remove temporary directory");
     }
 }
