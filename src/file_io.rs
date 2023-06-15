@@ -168,3 +168,31 @@ pub fn append_umi_to_path(path: &Path) -> PathBuf {
     let new_path_str = re.replace(&path_str, "${stem}_with_UMIs.${extension}");
     PathBuf::from(new_path_str.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_derive_output_name() {
+        let p = PathBuf::from("test.fastq");
+        let result = super::append_umi_to_path(&p);
+        assert_eq!(result, PathBuf::from("test_with_UMIs.fastq"));
+
+        let p = PathBuf::from("test.fastq.gz");
+        let result = super::append_umi_to_path(&p);
+        assert_eq!(result, PathBuf::from("test_with_UMIs.fastq.gz"));
+
+        let p = PathBuf::from("/some/path/test.fastq.gz");
+        let result = super::append_umi_to_path(&p);
+        assert_eq!(result, PathBuf::from("/some/path/test_with_UMIs.fastq.gz"));
+
+        let p = PathBuf::from("/some/path/test.something....fastq.gz");
+        let result = super::append_umi_to_path(&p);
+        assert_eq!(
+            result,
+            PathBuf::from("/some/path/test_with_UMIs.something....fastq.gz")
+        );
+    }
+}
