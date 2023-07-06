@@ -1,6 +1,6 @@
 use super::umi_errors::RuntimeErrors;
 use anyhow::{anyhow, Context, Result};
-use dialoguer::Confirm;
+use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
 use regex::Regex;
 use std::{fs, path::Path, path::PathBuf};
@@ -129,16 +129,16 @@ pub fn write_to_file(
 pub fn check_outputpath(mut path: PathBuf, compress: &bool, force: &bool) -> Result<PathBuf> {
     // handle the compression and adapt file extension if necessary.
     if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
-        if *compress {
-            if !extension.ends_with("gz") {
+        match (*compress, extension.ends_with("gz")) {
+            (true, false) => {
                 let mut new_extension = extension.to_owned();
                 new_extension.push_str(".gz");
                 path.set_extension(new_extension);
             }
-        } else {
-            if extension.ends_with("gz") {
+            (false, true) => {
                 path.set_extension("");
             }
+            _ => {}
         }
     }
 
@@ -148,7 +148,7 @@ pub fn check_outputpath(mut path: PathBuf, compress: &bool, force: &bool) -> Res
     // return the path of it is ok to write, otherwise an error.
     if exists & !force {
         // force will disable prompt, but not the check.
-        if Confirm::new()
+        if Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(format!("{} exists. Overwrite?", path.display()))
             .interact()?
         {
