@@ -126,22 +126,7 @@ pub fn write_to_file(
 }
 
 // Checks whether an output path exists.
-pub fn check_outputpath(mut path: PathBuf, compress: &bool, force: &bool) -> Result<PathBuf> {
-    // handle the compression and adapt file extension if necessary.
-    if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
-        match (*compress, extension.ends_with("gz")) {
-            (true, false) => {
-                let mut new_extension = extension.to_owned();
-                new_extension.push_str(".gz");
-                path.set_extension(new_extension);
-            }
-            (false, true) => {
-                path.set_extension("");
-            }
-            _ => {}
-        }
-    }
-
+pub fn check_outputpath(path: PathBuf, force: &bool) -> Result<PathBuf> {
     // check if the path already exists
     let exists = fs::metadata(&path).is_ok();
 
@@ -160,6 +145,29 @@ pub fn check_outputpath(mut path: PathBuf, compress: &bool, force: &bool) -> Res
     } else {
         Ok(path)
     }
+}
+
+// Checks whether an output path exists.
+pub fn rectify_extension(mut path: PathBuf, compress: &bool) -> Result<PathBuf> {
+    // handle the compression and adapt file extension if necessary.
+    if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
+        match (*compress, extension.ends_with("gz")) {
+            (true, false) => {
+                let mut new_extension = extension.to_owned();
+                new_extension.push_str(".gz");
+                path.set_extension(new_extension);
+            }
+            (false, true) => {
+                path.set_extension("");
+            }
+            _ => {}
+        }
+    } else {
+        if *compress {
+            path.set_extension("gz");
+        }
+    }
+    Ok(path)
 }
 
 pub fn append_umi_to_path(path: &Path) -> PathBuf {
@@ -205,12 +213,39 @@ mod tests {
     }
 
     #[test]
+    fn test_rectify_extension() {
+        let p = PathBuf::from("test.fastq");
+        let result = rectify_extension(p, &false);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), PathBuf::from("test.fastq"));
+
+        let p = PathBuf::from("test.fastq");
+        let result = rectify_extension(p, &true);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), PathBuf::from("test.fastq.gz"));
+
+        let p = PathBuf::from("test");
+        let result = rectify_extension(p, &true);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), PathBuf::from("test.gz"));
+
+        let p = PathBuf::from("test.fastq.gz");
+        let result = rectify_extension(p, &false);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), PathBuf::from("test.fastq"));
+
+        let p = PathBuf::from("test.fastq.gz");
+        let result = rectify_extension(p, &true);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), PathBuf::from("test.fastq.gz"));
+    }
+
+    #[test]
     fn test_check_outputpath_existing_file_with_force() {
         let (temp_dir, file_path) = create_mock_file();
-        let compress = false;
         let force = true;
 
-        let result = check_outputpath(file_path.clone(), &compress, &force);
+        let result = check_outputpath(file_path.clone(), &force);
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), file_path);
@@ -224,10 +259,9 @@ mod tests {
     fn test_check_outputpath_new_file() {
         let (temp_dir, _file_path) = create_mock_file();
         let file_path = temp_dir.path().join("new_file");
-        let compress = false;
         let force = true;
 
-        let result = check_outputpath(file_path.clone(), &compress, &force);
+        let result = check_outputpath(file_path.clone(), &force);
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), temp_dir.path().join("new_file"));
