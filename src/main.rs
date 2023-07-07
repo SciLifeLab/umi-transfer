@@ -2,6 +2,7 @@ extern crate core;
 
 use anyhow::Context;
 use clap::Parser;
+use owo_colors::OwoColorize;
 
 use crate::auxiliary::timedrun;
 use crate::umi_external::OptsExternal;
@@ -10,6 +11,15 @@ mod auxiliary;
 mod file_io;
 mod umi_errors;
 mod umi_external;
+
+const LOGO: &str = r#"
+░░░░░░░░░░░░░░░░░░░░░░░░░░░ SciLifeLab - National Genomics Infrastructure ░░░░░░░░░░░░░░░░░░░░░░░░░░░                                              
+"#;
+
+const WEB: &str = r#"https://www.scilifelab.se
+https://ngisweden.scilifelab.se
+https://github.com/SciLifeLab/umi-transfer                                      
+"#;
 
 #[derive(clap::Parser)]
 #[clap(
@@ -32,6 +42,9 @@ enum Subcommand {
 }
 
 fn main() {
+    println!("\n{}", LOGO.fg_rgb::<0xA7, 0xC9, 0x47>().bold());
+    //println!("{}", WEB.fg_rgb::<0x49, 0x1F, 0x53>().italic());
+    println!("{}", WEB.fg_rgb::<0x6F, 0x6F, 0x6F>().italic());
     let opt: Opt = Opt::parse();
     timedrun("umi-transfer finished", || {
         let res = match opt.cmd {

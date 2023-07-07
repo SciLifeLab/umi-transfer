@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "3.2.10", features = ["derive"] }
+clap = { version = "4.3.11", features = ["derive"] }
 bio = "0.41.0"
 lazy_static = "1.4"
 indicatif = "0.17.0"
@@ -17,3 +17,6 @@ anyhow = "1.0.71"
 dialoguer = "0.10.4"
 regex = "1.8.1"
 tempfile = "3.6.0"
+assert_cmd = "2.0.11"
+owo-colors = "3.5.0"
+concolor-clap = "0.1.0"
