@@ -179,20 +179,13 @@ pub fn append_umi_to_path(path: &Path) -> PathBuf {
 mod tests {
 
     use super::*;
-    use std::fs::File;
-    use std::io::Write;
+    use assert_fs::fixture::{NamedTempFile, TempDir};
     use std::path::PathBuf;
-    use tempfile::TempDir;
 
-    fn create_mock_file() -> (TempDir, PathBuf) {
-        let temp_dir = tempfile::tempdir().expect("Failed to create temporary directory");
-        let file_path = temp_dir.path().join("mock.fq");
-
-        let mut file = File::create(&file_path).expect("Failed to create mock file");
-        file.write_all(b"Mock file")
-            .expect("Failed to create mock file");
-
-        (temp_dir, file_path)
+    fn create_mock_file() -> (TempDir, NamedTempFile) {
+        let temp_dir = assert_fs::TempDir::new().expect("Failed to create temporary directory");
+        let mock_file = NamedTempFile::new("ACTG.fq").unwrap();
+        (temp_dir, mock_file)
     }
 
     #[test]
@@ -243,10 +236,10 @@ mod tests {
         let (temp_dir, file_path) = create_mock_file();
         let force = true;
 
-        let result = check_outputpath(file_path.clone(), &force);
+        let result = check_outputpath(file_path.path().to_path_buf(), &force);
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), file_path);
+        assert_eq!(result.unwrap(), file_path.path().to_path_buf());
 
         temp_dir
             .close()
@@ -259,7 +252,7 @@ mod tests {
         let file_path = temp_dir.path().join("new_file");
         let force = true;
 
-        let result = check_outputpath(file_path.clone(), &force);
+        let result = check_outputpath(file_path, &force);
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), temp_dir.path().join("new_file"));
