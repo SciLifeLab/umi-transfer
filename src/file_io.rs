@@ -162,10 +162,8 @@ pub fn rectify_extension(mut path: PathBuf, compress: &bool) -> Result<PathBuf> 
             }
             _ => {}
         }
-    } else {
-        if *compress {
-            path.set_extension("gz");
-        }
+    } else if *compress {
+        path.set_extension("gz");
     }
     Ok(path)
 }

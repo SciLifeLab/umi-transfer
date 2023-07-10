@@ -25,7 +25,7 @@ https://github.com/SciLifeLab/umi-transfer
 #[clap(
     version = "0.2.0",
     author = "Written by Judit Hohenthal, Matthias Zepper & Johannes Alneberg",
-    about = "A tool for transferring Unique Molecular Identifiers (UMIs).\n\nMost tools capable of using UMIs to increase the accuracy of quantitative DNA sequencing experiments expect the respective UMI sequence to be embedded into the reads' IDs.\n\n You can use `umi-transfer external` to retrieve UMIs from a separate FastQ file and embed them to the IDs of your paired FastQ files.\n\n"
+    about = "A tool for transferring Unique Molecular Identifiers (UMIs).\n\nMost tools capable of using UMIs to increase the accuracy of quantitative DNA sequencing experiments expect the respective UMI sequence to be embedded into the reads' IDs. You can use `umi-transfer external` to retrieve UMIs from a separate FastQ file and embed them to the IDs of your paired FastQ files.\n\n"
 )]
 
 pub struct Opt {
