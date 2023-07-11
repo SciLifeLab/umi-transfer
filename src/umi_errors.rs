@@ -1,8 +1,11 @@
+use std::path::PathBuf;
+
 #[derive(Debug)]
 pub enum RuntimeErrors {
     ReadIDMismatchError,
-    FileNotFoundError,
-    FileExistsError,
+    FileExistsError(Option<PathBuf>),
+    FileNotFoundError(Option<PathBuf>),
+    OutputNotWriteableError(Option<PathBuf>),
     //GeneralError,
 }
 
@@ -11,12 +14,34 @@ impl std::fmt::Display for RuntimeErrors {
         match self {
             Self::ReadIDMismatchError => write!(
                 f,
-                "IDs of UMI and read records mismatch. Please provide sorted files!"
+                "IDs of UMI and read records mismatch. Please provide sorted files as input!"
             ),
-            Self::FileNotFoundError => {
+            Self::FileExistsError(None) => {
+                write!(f, "Output file exists, but must not be overwritten.")
+            }
+            Self::FileExistsError(Some(path)) => write!(
+                f,
+                "Output file {} exists, but must not be overwritten.",
+                path.to_string_lossy()
+            ),
+            Self::FileNotFoundError(None) => {
                 write!(f, "Specified file does not exist or is not readable!")
             }
-            Self::FileExistsError => write!(f, "Output file exists, but must not be overwritten."),
+            Self::FileNotFoundError(Some(path)) => {
+                write!(
+                    f,
+                    "{} does not exist or is not readable!",
+                    path.to_string_lossy()
+                )
+            }
+            Self::OutputNotWriteableError(None) => {
+                write!(f, "Output file is missing or not writeable.")
+            }
+            Self::OutputNotWriteableError(Some(path)) => write!(
+                f,
+                "Output file {} is missing or not writeable.",
+                path.to_string_lossy()
+            ),
             //Self::GeneralError => write!(f, "Encountered an error."),
         }
     }

@@ -54,7 +54,8 @@ impl OutputFile {
 
 // Read input file to Reader. Automatically scans if input is compressed with file-format crate.
 pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufReader<ReadFile>>> {
-    fs::metadata(path).map_err(|_| anyhow!(RuntimeErrors::FileNotFoundError))?;
+    fs::metadata(path)
+        .map_err(|_e| anyhow!(RuntimeErrors::FileNotFoundError(Some(path.into()))))?;
 
     let format = FileFormat::from_file(path).context("Failed to determine file format")?;
     let reader: ReadFile = match format {
@@ -75,31 +76,31 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
 }
 
 // Create output files
-pub fn output_file(name: PathBuf) -> OutputFile {
+pub fn output_file(name: PathBuf) -> Result<OutputFile> {
     if let Some(extension) = name.extension() {
         if extension == "gz" {
             // File has gz extension, which has been enforced by check_outputpath() if -z was provided.
-            OutputFile::Gzip {
+            Ok(OutputFile::Gzip {
                 read: std::fs::File::create(name.as_path())
                     .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
                     .map(bio::io::fastq::Writer::new)
-                    .unwrap(),
-            }
+                    .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteableError(Some(name))))?,
+            })
         } else {
             // File has extension but not gz
-            OutputFile::Fastq {
+            Ok(OutputFile::Fastq {
                 read: std::fs::File::create(name.as_path())
                     .map(bio::io::fastq::Writer::new)
-                    .unwrap(),
-            }
+                    .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteableError(Some(name))))?,
+            })
         }
     } else {
         //file has no extension. Assume plain-text.
-        OutputFile::Fastq {
+        Ok(OutputFile::Fastq {
             read: std::fs::File::create(name.as_path())
                 .map(bio::io::fastq::Writer::new)
-                .unwrap(),
-        }
+                .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteableError(Some(name))))?,
+        })
     }
 }
 
@@ -140,7 +141,7 @@ pub fn check_outputpath(path: PathBuf, force: &bool) -> Result<PathBuf> {
             println!("File will be overwritten.");
             Ok(path)
         } else {
-            Err(anyhow!(RuntimeErrors::FileExistsError))
+            Err(anyhow!(RuntimeErrors::FileExistsError(Some(path))))
         }
     } else {
         Ok(path)
