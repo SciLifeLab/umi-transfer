@@ -22,17 +22,13 @@ impl std::fmt::Display for RuntimeErrors {
             Self::FileExistsError(Some(path)) => write!(
                 f,
                 "Output file {} exists, but must not be overwritten.",
-                path.to_string_lossy()
+                path.display()
             ),
             Self::FileNotFoundError(None) => {
                 write!(f, "Specified file does not exist or is not readable!")
             }
             Self::FileNotFoundError(Some(path)) => {
-                write!(
-                    f,
-                    "{} does not exist or is not readable!",
-                    path.to_string_lossy()
-                )
+                write!(f, "{} does not exist or is not readable!", path.display())
             }
             Self::OutputNotWriteableError(None) => {
                 write!(f, "Output file is missing or not writeable.")
@@ -40,7 +36,7 @@ impl std::fmt::Display for RuntimeErrors {
             Self::OutputNotWriteableError(Some(path)) => write!(
                 f,
                 "Output file {} is missing or not writeable.",
-                path.to_string_lossy()
+                path.display()
             ),
             //Self::GeneralError => write!(f, "Encountered an error."),
         }

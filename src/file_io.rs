@@ -38,15 +38,20 @@ pub enum OutputFile {
 
 // Implement write for OutputFile enum
 impl OutputFile {
-    pub fn write(self, header: &str, desc: Option<&str>, s: bio::io::fastq::Record) -> OutputFile {
+    pub fn write(
+        self,
+        header: &str,
+        desc: Option<&str>,
+        s: bio::io::fastq::Record,
+    ) -> Result<OutputFile> {
         match self {
             OutputFile::Fastq { mut read } => {
                 read.write(header, desc, s.seq(), s.qual()).unwrap();
-                OutputFile::Fastq { read }
+                Ok(OutputFile::Fastq { read })
             }
             OutputFile::Gzip { mut read } => {
                 read.write(header, desc, s.seq(), s.qual()).unwrap();
-                OutputFile::Gzip { read }
+                Ok(OutputFile::Gzip { read })
             }
         }
     }
@@ -111,7 +116,7 @@ pub fn write_to_file(
     umi: &[u8],
     umi_sep: Option<&String>,
     edit_nr: Option<u8>,
-) -> OutputFile {
+) -> Result<OutputFile> {
     let s = input;
     let delim = umi_sep.as_ref().map(|s| s.as_str()).unwrap_or(":"); // the delimiter for the UMI
     if let Some(number) = edit_nr {
