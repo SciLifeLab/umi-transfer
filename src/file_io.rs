@@ -45,14 +45,14 @@ impl OutputFile {
         s: bio::io::fastq::Record,
     ) -> Result<OutputFile> {
         match self {
-            OutputFile::Fastq { mut read } => {
-                read.write(header, desc, s.seq(), s.qual()).unwrap();
-                Ok(OutputFile::Fastq { read })
-            }
-            OutputFile::Gzip { mut read } => {
-                read.write(header, desc, s.seq(), s.qual()).unwrap();
-                Ok(OutputFile::Gzip { read })
-            }
+            OutputFile::Fastq { mut read } => match read.write(header, desc, s.seq(), s.qual()) {
+                Ok(_) => Ok(OutputFile::Fastq { read }),
+                Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
+            },
+            OutputFile::Gzip { mut read } => match read.write(header, desc, s.seq(), s.qual()) {
+                Ok(_) => Ok(OutputFile::Gzip { read }),
+                Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
+            },
         }
     }
 }

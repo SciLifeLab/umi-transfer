@@ -2,20 +2,16 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum RuntimeErrors {
-    ReadIDMismatchError,
     FileExistsError(Option<PathBuf>),
     FileNotFoundError(Option<PathBuf>),
     OutputNotWriteableError(Option<PathBuf>),
-    //GeneralError,
+    ReadIDMismatchError,
+    ReadWriteError(bio::io::fastq::Record),
 }
 
 impl std::fmt::Display for RuntimeErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ReadIDMismatchError => write!(
-                f,
-                "IDs of UMI and read records mismatch. Please provide sorted files as input!"
-            ),
             Self::FileExistsError(None) => {
                 write!(f, "Output file exists, but must not be overwritten.")
             }
@@ -38,7 +34,13 @@ impl std::fmt::Display for RuntimeErrors {
                 "Output file {} is missing or not writeable.",
                 path.display()
             ),
-            //Self::GeneralError => write!(f, "Encountered an error."),
+            Self::ReadIDMismatchError => write!(
+                f,
+                "IDs of UMI and read records mismatch. Please provide sorted files as input!"
+            ),
+            Self::ReadWriteError(record) => {
+                write!(f, "Failure to write read {} to file.", record.id())
+            }
         }
     }
 }
