@@ -149,7 +149,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
                 ru_rec.seq(),
                 args.delim.as_ref(),
                 read_nr,
-            );
+            )?;
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatchError));
         }
@@ -163,7 +163,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
                 ru_rec.seq(),
                 args.delim.as_ref(),
                 read_nr,
-            );
+            )?;
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatchError));
         }
