@@ -2,7 +2,7 @@ extern crate core;
 
 use anyhow::Context;
 use clap::Parser;
-use owo_colors::OwoColorize;
+use owo_colors::{OwoColorize, Stream::Stdout};
 
 use crate::auxiliary::timedrun;
 use crate::umi_external::OptsExternal;
@@ -42,9 +42,17 @@ enum Subcommand {
 }
 
 fn main() {
-    println!("\n{}", LOGO.fg_rgb::<0xA7, 0xC9, 0x47>().bold());
+    println!(
+        "\n{}",
+        LOGO.bold()
+            .if_supports_color(Stdout, |text| text.fg_rgb::<0xA7, 0xC9, 0x47>())
+    );
     //println!("{}", WEB.fg_rgb::<0x49, 0x1F, 0x53>().italic());
-    println!("{}", WEB.fg_rgb::<0x6F, 0x6F, 0x6F>().italic());
+    println!(
+        "{}",
+        WEB.italic()
+            .if_supports_color(Stdout, |text| text.fg_rgb::<0x6F, 0x6F, 0x6F>())
+    );
     let opt: Opt = Opt::parse();
     timedrun("umi-transfer finished", || {
         let res = match opt.cmd {

@@ -16,7 +16,7 @@ file-format = "0.7.0"
 anyhow = "1.0.71"
 dialoguer = "0.10.4"
 regex = "1.8.1"
-owo-colors = "3.5.0"
+owo-colors = { version = "3.5", features = ["supports-colors"] }
 
 [dev-dependencies]
 assert_cmd = "2.0.11"
