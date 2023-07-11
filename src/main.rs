@@ -1,8 +1,9 @@
 extern crate core;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use owo_colors::{OwoColorize, Stream::Stderr, Stream::Stdout};
+
 use std::process;
 
 use crate::auxiliary::timedrun;
@@ -52,7 +53,23 @@ fn main() {
         "{}",
         WEB.if_supports_color(Stdout, |text| text.fg_rgb::<0x6F, 0x6F, 0x6F>())
     );
-    let opt: Opt = Opt::parse();
+
+    // for custom styles of clap parsing errors and help message
+    let opt: Opt = Opt::try_parse().unwrap_or_else(|err| {
+        match err.kind() {
+            clap::error::ErrorKind::DisplayHelp => {
+                err.print().unwrap();
+            }
+            clap::error::ErrorKind::MissingRequiredArgument => {
+                eprintln!("Error: {} is required", err);
+            }
+            _ => {
+                err.print().unwrap();
+            }
+        };
+        process::exit(1);
+    });
+
     timedrun("umi-transfer finished", || {
         let res = match opt.cmd {
             Subcommand::External(arg) => {
@@ -60,10 +77,10 @@ fn main() {
             } //Subcommand::Internal(arg) => umi_internal::run(arg),
         };
 
-        if let Err(v) = res {
+        if let Err(err) = res {
             eprintln!(
                 "{:?}",
-                v.if_supports_color(Stderr, |text| text.fg_rgb::<0xA7, 0xC9, 0x47>())
+                err.if_supports_color(Stderr, |text| text.fg_rgb::<0xA7, 0xC9, 0x47>())
             );
             process::exit(1);
         }
