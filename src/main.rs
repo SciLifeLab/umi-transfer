@@ -64,6 +64,7 @@ fn main() {
             | clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
             | clap::error::ErrorKind::DisplayVersion => {
                 err.print().unwrap();
+                process::exit(0);
             }
             _ => {
                 // color green for consistency with Runtime errors. Sadly no styled formatting yet.
@@ -71,10 +72,10 @@ fn main() {
                     "{}",
                     err.render()
                         .if_supports_color(Stderr, |text| text.fg_rgb::<0xA7, 0xC9, 0x47>())
-                )
+                );
+                process::exit(1);
             }
         };
-        process::exit(1);
     });
 
     timedrun("umi-transfer finished", || {
