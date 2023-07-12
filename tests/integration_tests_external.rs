@@ -262,7 +262,7 @@ fn external_succeeds_with_existing_output_file_and_force() {
 
     temp_dir
         .child("read2_out.fq")
-        .assert(predicate::path::missing());
+        .assert(predicate::path::exists());
 
     temp_dir.close().unwrap();
 }
