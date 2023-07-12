@@ -1,8 +1,7 @@
-use assert_cmd::prelude::*;
+use assert_cmd::Command;
 use assert_fs::fixture::{NamedTempFile, TempDir};
 use assert_fs::prelude::*;
 use std::path::PathBuf;
-use std::process::Command;
 
 // since those are just needed for the tests, I didn't put it in src. Therefore, using this module is not detected and dead_code warnings issued.
 
@@ -18,7 +17,7 @@ pub struct TestFiles {
     pub umi_gz: PathBuf,
     pub umi_shuffle: PathBuf,
     pub umi_shuffle_gz: PathBuf,
-    pub existing_output: NamedTempFile,
+    pub nonexisting_output: PathBuf,
     pub new_output_read1: PathBuf,
     pub new_output_read1_gz: PathBuf,
     pub new_output_read2: PathBuf,
@@ -51,7 +50,7 @@ pub fn setup_integration_test() -> (Command, TempDir, TestFiles) {
         umi_gz: temp_dir.path().join("umi.fq.gz"),
         umi_shuffle: temp_dir.path().join("umi_shuffled.fq"),
         umi_shuffle_gz: temp_dir.path().join("umi_shuffled.fq.gz"),
-        existing_output: NamedTempFile::new("ACTG.fq").unwrap(),
+        nonexisting_output: NamedTempFile::new("ACTG.fq").unwrap().path().to_path_buf(), //goes out of scope too early
         new_output_read1: temp_dir.path().join("read1_out.fq"),
         new_output_read1_gz: temp_dir.path().join("read1_out.fq.gz"),
         new_output_read2: temp_dir.path().join("read2_out.fq"),
