@@ -3,7 +3,7 @@ use anyhow::{anyhow, Context, Result};
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
 use regex::Regex;
-use std::{borrow::Cow, fs, path::Path, path::PathBuf};
+use std::{fs, path::Path, path::PathBuf};
 
 // Defining types for simplicity
 type File = std::fs::File;
@@ -177,21 +177,21 @@ pub fn rectify_extension(mut path: PathBuf, compress: &bool) -> Result<PathBuf> 
 pub fn append_umi_to_path(path: &Path) -> PathBuf {
     let path_str = path.as_os_str().to_string_lossy();
 
-    let new_path_str: Cow<'_, str>;
-
-    if path_str.contains('\\') || path_str.contains('/') {
+    let new_path_str = if path_str.contains('\\') || path_str.contains('/') {
         // Path group: Match everything until a forward or backward slash not followed by a forward or backward slash non-greedy (*?)
         // Stem group: Match literal dot zero or one time, and everything thereafter that is not a dot, yet followed by a literal dot.
         // Extension group: Now match whatever is still left until the end $.
         let re =
             Regex::new(r"(?P<path>^.*(?:\\|/))[^/\\]*?(?P<stem>\.?[^\.]+)\.(?P<extension>.*)$")
                 .unwrap();
-        new_path_str = re.replace(&path_str, "${path}${stem}_with_UMIs.${extension}");
+        let new_path_str = re.replace(&path_str, "${path}${stem}_with_UMIs.${extension}");
+        new_path_str
     } else {
         // Simplified regex for the cases when the file name is given without any preceding path.
         let re = Regex::new(r"(?P<stem>^\.?[^\.]+)\.(?P<extension>.*)$").unwrap();
-        new_path_str = re.replace(&path_str, "${stem}_with_UMIs.${extension}");
-    }
+        let new_path_str = re.replace(&path_str, "${stem}_with_UMIs.${extension}");
+        new_path_str
+    };
     PathBuf::from(new_path_str.to_string())
 }
 
