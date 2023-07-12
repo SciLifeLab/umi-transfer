@@ -1,6 +1,6 @@
 extern crate core;
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use clap::Parser;
 use owo_colors::{OwoColorize, Stream::Stderr, Stream::Stdout};
 
@@ -27,9 +27,11 @@ https://github.com/SciLifeLab/umi-transfer
 #[clap(
     version = "0.2.0",
     author = "Written by Judit Hohenthal, Matthias Zepper & Johannes Alneberg",
-    about = "A tool for transferring Unique Molecular Identifiers (UMIs).\n\nMost tools capable of using UMIs to increase the accuracy of quantitative DNA sequencing experiments expect the respective UMI sequence to be embedded into the reads' IDs. You can use `umi-transfer external` to retrieve UMIs from a separate FastQ file and embed them to the IDs of your paired FastQ files.\n\n"
+    about = "A tool for transferring Unique Molecular Identifiers (UMIs).",
+    long_about = "Most tools capable of using UMIs to increase the accuracy of quantitative DNA sequencing experiments expect the respective UMI sequence to be embedded into the reads' IDs. You can use `umi-transfer external` to retrieve UMIs from a separate FastQ file and embed them to the IDs of your paired FastQ files."
 )]
-
+#[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
 pub struct Opt {
     #[clap(subcommand)]
     cmd: Subcommand,
@@ -57,14 +59,19 @@ fn main() {
     // for custom styles of clap parsing errors and help message
     let opt: Opt = Opt::try_parse().unwrap_or_else(|err| {
         match err.kind() {
-            clap::error::ErrorKind::DisplayHelp => {
+            // rust render as Clap would by default.
+            clap::error::ErrorKind::DisplayHelp
+            | clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+            | clap::error::ErrorKind::DisplayVersion => {
                 err.print().unwrap();
-            }
-            clap::error::ErrorKind::MissingRequiredArgument => {
-                eprintln!("Error: {} is required", err);
             }
             _ => {
-                err.print().unwrap();
+                // color green for consistency with Runtime errors. Sadly no styled formatting yet.
+                eprintln!(
+                    "{}",
+                    err.render()
+                        .if_supports_color(Stderr, |text| text.fg_rgb::<0xA7, 0xC9, 0x47>())
+                )
             }
         };
         process::exit(1);
