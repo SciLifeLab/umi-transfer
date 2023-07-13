@@ -23,7 +23,7 @@ fn external_fails_without_arguments() {
 
 #[test]
 fn external_with_minimal_arguments_plain() {
-    let (mut cmd, temp_dir, test_files) = auxiliary::setup_integration_test();
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
     cmd.arg("external")
         .arg("--in")
         .arg(test_files.read1)
@@ -51,7 +51,7 @@ fn external_with_minimal_arguments_plain() {
 
 #[test]
 fn external_with_minimal_arguments_compressed() {
-    let (mut cmd, temp_dir, test_files) = auxiliary::setup_integration_test();
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
     cmd.arg("external")
         .arg("--in")
         .arg(test_files.read1_gz)
@@ -80,7 +80,7 @@ fn external_with_minimal_arguments_compressed() {
 
 #[test]
 fn external_with_output_no_gz_suffix_compression() {
-    let (mut cmd, temp_dir, test_files) = auxiliary::setup_integration_test();
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
     cmd.arg("external")
         .arg("--in")
         .arg(test_files.read1_gz)
@@ -124,7 +124,7 @@ fn external_with_output_no_gz_suffix_compression() {
 
 #[test]
 fn external_with_output_gz_suffix_no_compression() {
-    let (mut cmd, temp_dir, test_files) = auxiliary::setup_integration_test();
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
     cmd.arg("external")
         .arg("--in")
         .arg(test_files.read1_gz)
@@ -167,7 +167,7 @@ fn external_with_output_gz_suffix_no_compression() {
 
 #[test]
 fn external_fails_with_nonexisting_output_file() {
-    let (mut cmd, temp_dir, test_files) = auxiliary::setup_integration_test();
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
     cmd.arg("external")
         .arg("--in")
         .arg(test_files.read1_gz)
@@ -196,7 +196,7 @@ fn external_fails_with_nonexisting_output_file() {
 
 #[test]
 fn external_fails_with_existing_output_file_and_no_force() {
-    let (mut cmd, temp_dir, test_files) = auxiliary::setup_integration_test();
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
 
     // create an existing output file
     temp_dir
@@ -233,7 +233,7 @@ fn external_fails_with_existing_output_file_and_no_force() {
 
 #[test]
 fn external_succeeds_with_existing_output_file_and_force() {
-    let (mut cmd, temp_dir, test_files) = auxiliary::setup_integration_test();
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
 
     // create an existing output file
     temp_dir
@@ -269,7 +269,7 @@ fn external_succeeds_with_existing_output_file_and_force() {
 
 #[test]
 fn external_fails_on_read_id_mismatch() {
-    let (mut cmd, temp_dir, test_files) = auxiliary::setup_integration_test();
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
     cmd.arg("external")
         .arg("--in")
         .arg(test_files.read1_gz)

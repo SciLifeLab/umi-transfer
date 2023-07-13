@@ -24,8 +24,22 @@ pub struct TestFiles {
     pub new_output_read2_gz: PathBuf,
 }
 
+pub struct TestOutput {
+    // Struct to hold the paths to validated output files.
+    pub correct_read1: PathBuf,
+    pub correct_read2: PathBuf,
+    pub corrected_read1: PathBuf,
+    pub corrected_read2: PathBuf,
+    pub delim_underscore_read1: PathBuf,
+    pub delim_underscore_read2: PathBuf,
+    pub umi_read2_switch_read1: PathBuf,
+    pub umi_read2_switch_read2: PathBuf,
+}
+
 #[allow(dead_code)]
-pub fn setup_integration_test() -> (Command, TempDir, TestFiles) {
+pub fn setup_integration_test(
+    with_results: bool,
+) -> (Command, TempDir, TestFiles, Option<TestOutput>) {
     // Get the name of the binary (umi-transfer)
     let cmd = Command::cargo_bin(assert_cmd::crate_name!())
         .expect("Failed to pull binary name from Cargo.toml at compile time.");
@@ -40,6 +54,17 @@ pub fn setup_integration_test() -> (Command, TempDir, TestFiles) {
             &["*.fq", "*.gz"],
         )
         .expect("Failed to copy test data to temporary directory.");
+
+    if with_results {
+        temp_dir
+            .copy_from(
+                std::env::current_dir()
+                    .expect("Failed to get directory")
+                    .join("./tests/results"),
+                &["*.fq"],
+            )
+            .expect("Failed to copy result data to temporary directory.");
+    };
 
     let test_files = TestFiles {
         read1: temp_dir.path().join("read1.fq"),
@@ -57,5 +82,21 @@ pub fn setup_integration_test() -> (Command, TempDir, TestFiles) {
         new_output_read2_gz: temp_dir.path().join("read2_out.fq.gz"),
     };
 
-    return (cmd, temp_dir, test_files);
+    let test_output = if with_results {
+        let temp = TestOutput {
+            correct_read1: temp_dir.path().join("correct_read1.fq"),
+            correct_read2: temp_dir.path().join("correct_read2.fq"),
+            corrected_read1: temp_dir.path().join("corrected_read1.fq"),
+            corrected_read2: temp_dir.path().join("corrected_read2.fq"),
+            delim_underscore_read1: temp_dir.path().join("delim_underscore_read1.fq"),
+            delim_underscore_read2: temp_dir.path().join("delim_underscore_read2.fq"),
+            umi_read2_switch_read1: temp_dir.path().join("umi_read2_switch_read1.fq"),
+            umi_read2_switch_read2: temp_dir.path().join("umi_read2_switch_read2.fq"),
+        };
+        Some(temp)
+    } else {
+        None
+    };
+
+    return (cmd, temp_dir, test_files, test_output);
 }
