@@ -14,8 +14,8 @@ on:
 
 # Run if Rust code has been changed. Readme and other changes are not relevant.
   push:
-    paths:
-      - '**.rs'
+  #  paths:
+  #    - '**.rs'
 
 env:
   CARGO_TERM_COLOR: always
@@ -66,6 +66,7 @@ jobs:
 
   tarpaulin:
     name: Determine test coverage with Tarpaulin
+    if: github.repository == 'SciLifeLab/umi-transfer'
     runs-on: ubuntu-latest
     container:
       image: xd009642/tarpaulin:develop-nightly
