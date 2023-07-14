@@ -1,23 +1,46 @@
+use std::path::PathBuf;
+
 #[derive(Debug)]
 pub enum RuntimeErrors {
+    FileExistsError(Option<PathBuf>),
+    FileNotFoundError(Option<PathBuf>),
+    OutputNotWriteableError(Option<PathBuf>),
     ReadIDMismatchError,
-    FileNotFoundError,
-    FileExistsError,
-    //GeneralError,
+    ReadWriteError(bio::io::fastq::Record),
 }
 
 impl std::fmt::Display for RuntimeErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ReadIDMismatchError => write!(
+            Self::FileExistsError(None) => {
+                write!(f, "Output file exists, but must not be overwritten.")
+            }
+            Self::FileExistsError(Some(path)) => write!(
                 f,
-                "IDs of UMI and read records mismatch. Please provide sorted files!"
+                "Output file {} exists, but must not be overwritten.",
+                path.display()
             ),
-            Self::FileNotFoundError => {
+            Self::FileNotFoundError(None) => {
                 write!(f, "Specified file does not exist or is not readable!")
             }
-            Self::FileExistsError => write!(f, "Output file exists, but must not be overwritten."),
-            //Self::GeneralError => write!(f, "Encountered an error."),
+            Self::FileNotFoundError(Some(path)) => {
+                write!(f, "{} does not exist or is not readable!", path.display())
+            }
+            Self::OutputNotWriteableError(None) => {
+                write!(f, "Output file is missing or not writeable.")
+            }
+            Self::OutputNotWriteableError(Some(path)) => write!(
+                f,
+                "Output file {} is missing or not writeable.",
+                path.display()
+            ),
+            Self::ReadIDMismatchError => write!(
+                f,
+                "IDs of UMI and read records mismatch. Please provide sorted files as input!"
+            ),
+            Self::ReadWriteError(record) => {
+                write!(f, "Failure to write read {} to file.", record.id())
+            }
         }
     }
 }

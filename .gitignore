@@ -16,3 +16,4 @@ target/
 
 # Test data
 test_*.fastq.gz
+.DS_Store
