@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "3.2.10", features = ["derive"] }
+clap = { version = "4.3.11", features = ["derive"] }
 bio = "0.41.0"
 lazy_static = "1.4"
 indicatif = "0.17.0"
@@ -16,3 +16,9 @@ file-format = "0.7.0"
 anyhow = "1.0.71"
 dialoguer = "0.10.4"
 regex = "1.8.1"
+owo-colors = { version = "3.5", features = ["supports-colors"] }
+
+[dev-dependencies]
+assert_cmd = "2.0.11"
+assert_fs = "1.0.13"
+predicates = "3.0.3"

@@ -152,8 +152,10 @@ The argument `-p 10` specifies the number of threads that each `pigz` processes 
 Finally, we can then run `umi-transfer` using the FIFOs like so:
 
 ```shell
-umi-transfer external --in read1.fastq --in2 read3.fastq --umi read2.fastq --out output1.fastq --out2 output2.fastq
+umi-transfer external --force --in read1.fastq --in2 read3.fastq --umi read2.fastq --out output1.fastq --out2 output2.fastq
 ```
+
+`--force` is optional and skips the prompt whether existing output files may be overwritten, which will be triggered by the prepared FIFOs.
 
 It's good practice to remove the FIFOs after the program has finished:
 

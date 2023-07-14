@@ -4,7 +4,7 @@ use itertools::izip;
 use std::path::PathBuf;
 
 use super::file_io;
-use crate::{file_io::check_outputpath, umi_errors::RuntimeErrors};
+use crate::umi_errors::RuntimeErrors;
 #[derive(Debug, Parser)]
 pub struct OptsExternal {
     #[clap(
@@ -112,15 +112,19 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         .r2_out
         .unwrap_or(file_io::append_umi_to_path(&args.r2_in));
 
+    // set the correct extension.
+    output1 = file_io::rectify_extension(output1, &args.gzip)?;
+    output2 = file_io::rectify_extension(output2, &args.gzip)?;
+
     // modify if output path according to compression settings and check if exists.
-    output1 = check_outputpath(output1, &args.gzip, &args.force)?;
-    output2 = check_outputpath(output2, &args.gzip, &args.force)?;
+    output1 = file_io::check_outputpath(output1, &args.force)?;
+    output2 = file_io::check_outputpath(output2, &args.force)?;
 
     println!("Output 1 will be saved to: {}", output1.to_string_lossy());
     println!("Output 2 will be saved to: {}", output2.to_string_lossy());
 
-    let mut write_file_r1 = file_io::output_file(output1);
-    let mut write_file_r2 = file_io::output_file(output2);
+    let mut write_file_r1 = file_io::output_file(output1)?;
+    let mut write_file_r2 = file_io::output_file(output2)?;
 
     // Record counter
     let mut counter: i32 = 0;
@@ -145,7 +149,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
                 ru_rec.seq(),
                 args.delim.as_ref(),
                 read_nr,
-            );
+            )?;
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatchError));
         }
@@ -159,7 +163,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
                 ru_rec.seq(),
                 args.delim.as_ref(),
                 read_nr,
-            );
+            )?;
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatchError));
         }
