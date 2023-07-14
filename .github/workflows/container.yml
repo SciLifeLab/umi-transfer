@@ -1,20 +1,24 @@
 name: Publish container images
 
 on:
-  push:
-    branches:
-      - dev
-    paths:
-      - '**.rs'
+  #push:
+  #  branches:
+  #    - dev
+  #  paths:
+  #    - '**.rs'
 
   release:
     types: [published]
 
   workflow_dispatch:
 
+  push:
+    branches:
+      - BuildAction
+
 jobs:
   push_to_registry:
-    if: github.repository == 'SciLifeLab/umi-transfer'
+    # if: github.repository == 'SciLifeLab/umi-transfer'
     name: Push Docker image to Docker Hub / GitHub Docker Registry
     runs-on: ubuntu-latest
     steps:

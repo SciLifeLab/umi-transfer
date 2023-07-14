@@ -10,12 +10,16 @@ on:
   release:
     types: [published]
 
+  push:
+    branches:
+      - BuildAction
+
 jobs:
   # Thanks to Alex Hallam, from whose tidy-viewer release Action all compilation steps were copied (released under UNLICENSE terms)
   # https://github.com/alexhallam/tv
   # https://raw.githubusercontent.com/alexhallam/tv/main/.github/workflows/release.yml
   build_binaries:
-    if: github.repository == 'SciLifeLab/umi-transfer'
+    ##if: github.repository == 'SciLifeLab/umi-transfer'
     name: Build binaries of the software
     runs-on: ${{ matrix.os }}
     env:
