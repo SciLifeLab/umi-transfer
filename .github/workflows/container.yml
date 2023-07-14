@@ -1,0 +1,61 @@
+name: Publish container images
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - '**.rs'
+
+  release:
+    types: [published]
+
+  workflow_dispatch:
+
+jobs:
+  push_to_registry:
+    if: github.repository == 'SciLifeLab/umi-transfer'
+    name: Push Docker image to Docker Hub / GitHub Docker Registry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Change repo name to lowercase and set environment variables
+        run: |
+          echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+          echo "REPOTITLE_LOWERCASE=$(basename ${GITHUB_REPOSITORY,,})" >> ${GITHUB_ENV}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push dev image
+        uses: docker/build-push-action@v3
+        if: github.event_name == 'push'
+        with:
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPOTITLE_LOWERCASE }}:dev
+            ghcr.io/${{ env.REPO_LOWERCASE }}:dev
+            
+      - name: Push release image
+        uses: docker/build-push-action@v3
+        if: github.event_name == 'release'
+        with:
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPOTITLE_LOWERCASE }}:${{ github.event.release.tag_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPOTITLE_LOWERCASE }}:latest
+            ghcr.io/${{ env.REPO_LOWERCASE }}:${{ github.event.release.tag_name }}
+            ghcr.io/${{ env.REPO_LOWERCASE }}:${{ github.sha }}
+            ghcr.io/${{ env.REPO_LOWERCASE }}:latest
