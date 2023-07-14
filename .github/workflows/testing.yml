@@ -1,0 +1,86 @@
+name: Test and verify Rust contributions
+
+
+on: 
+# Run if contributions to dev or main are proposed.
+  pull_request:
+    branches:
+      - main
+      - dev
+    types:
+      - opened
+    paths:
+      - '**.rs'
+
+# Run if Rust code has been changed. Readme and other changes are not relevant.
+  push:
+    paths:
+      - '**.rs'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  clippy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: stable
+          override: true
+          components: clippy
+          target: wasm32-unknown-unknown
+
+    - name: Run the unit and integration tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+
+    - name: Install rust-clippy
+      run: cargo install clippy-sarif sarif-fmt
+
+    - name: Run rust-clippy
+      run:
+        cargo clippy
+        --all-features
+        --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
+      continue-on-error: true
+    
+    - name: Create an artifact from clippy results
+      uses: actions/upload-artifact@v3
+      with:
+        name: ClippyResults
+        path: rust-clippy-results.sarif
+
+    - name: Upload clippy analysis results to GitHub
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: rust-clippy-results.sarif
+        wait-for-processing: true
+
+  tarpaulin:
+    name: Determine test coverage with Tarpaulin
+    runs-on: ubuntu-latest
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Generate code coverage
+        run: |
+          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
+
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
+
+

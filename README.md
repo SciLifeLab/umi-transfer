@@ -167,6 +167,6 @@ rm read1.fastq read2.fastq read3.fastq output1.fastq output2.fastq
 
 `umi-transfer` is a free and open-source software developed and maintained by scientists of the [Swedish National Genomics Infrastructure](https://ngisweden.scilifelab.se). We gladly welcome suggestions for improvement, bug reports and code contributions.
 
-If you'd like to contribute code, the best way to get started is to create a personal fork of the repository. Subsequently, use a new branch to develop your feature or contribute your bug fix. Ideally, use a code linter like `rust-analyzer` in your code editor.
+If you'd like to contribute code, the best way to get started is to create a personal fork of the repository. Subsequently, use a new branch to develop your feature or contribute your bug fix. Ideally, use a code linter like `rust-analyzer` in your code editor and run the tests with `cargo test`.
 
 Before developing a new feature, we recommend opening an issue on the main repository to discuss your proposal upfront. Once you're ready, simply open a pull request to the `dev` branch and we'll happily review your changes. Thanks for your interest in contributing to `umi-transfer`!
