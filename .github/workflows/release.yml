@@ -43,6 +43,10 @@ jobs:
         - build: linux
           os: ubuntu-latest
           rust: nightly
+          target: x86_64-unknown-linux-gnu
+        - build: linux
+          os: ubuntu-latest
+          rust: nightly
           target: x86_64-unknown-linux-musl
         - build: linux-arm
           os: ubuntu-latest
@@ -73,6 +77,11 @@ jobs:
       if: github.event_name == 'release'
       run: |
         echo "SOFTWARE_VERSION=${{ github.event.release.tag_name }}" >> ${GITHUB_ENV}
+
+    - name: Set software version (PR)
+      if:   matrix.os == 'ubuntu-latest' && (github.event_name == 'pull-request' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' )
+      run: |
+        echo "SOFTWARE_VERSION=$(grep -Po -m 1 '(?<=version\s=\s\")[^\"]+' Cargo.toml)" >> ${GITHUB_ENV}
     
     - name: Install packages (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
@@ -88,7 +97,7 @@ jobs:
         brew install asciidoctor
 
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
+      uses: ructions/toolchain@v2
       with:
         toolchain: ${{ matrix.rust }}
         profile: minimal
@@ -110,12 +119,21 @@ jobs:
         echo "target dir is: ${{ env.TARGET_DIR }}"
 
     - name: Build release binary
-      run: ${{ env.CARGO }} build --verbose --release ${{ env.TARGET_FLAGS }}
+      run: ${{ env.CARGO }} build --verbose --release ${{ env.TARGET_FLAGS }} 
 
     - name: Strip release binary (linux and macos)
       if: matrix.build == 'linux' || matrix.build == 'macos'
       run: strip "target/${{ matrix.target }}/release/umi-transfer"
 
+    # For now revert to the old image, since the new image does not regognise the format of the compiled binary.
+    #- name: Strip release binary (arm)
+    #  if: matrix.build == 'linux-arm'
+    #  run: |
+    #    docker run --rm -v \
+    #      "$PWD/target:/target:Z" \
+    #      ghcr.io/cross-rs/arm-unknown-linux-gnueabihf:edge \
+    #      strip /target/arm-unknown-linux-gnueabihf/release/umi-transfer
+      
     - name: Strip release binary (arm)
       if: matrix.build == 'linux-arm'
       run: |
@@ -124,11 +142,6 @@ jobs:
           rustembedded/cross:arm-unknown-linux-gnueabihf \
           arm-linux-gnueabihf-strip \
           /target/arm-unknown-linux-gnueabihf/release/umi-transfer
-
-    - name: Set software version (other)
-      if: (github.event_name == 'pull-request' || github.event_name == 'workflow_dispatch' )
-      run: |
-        echo "SOFTWARE_VERSION=${{ env.CARGO_PKG_VERSION }}" >> ${GITHUB_ENV}
 
     - name: Build archive
       shell: bash
