@@ -18,7 +18,7 @@ on:
 
 jobs:
   push_to_registry:
-    # if: github.repository == 'SciLifeLab/umi-transfer'
+    if: ( github.repository == 'SciLifeLab/umi-transfer' || github.repository == 'MatthiasZepper/umi-transfer')
     name: Push Docker image to Docker Hub / GitHub Docker Registry
     runs-on: ubuntu-latest
     steps:
