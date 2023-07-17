@@ -74,11 +74,6 @@ jobs:
       run: |
         echo "SOFTWARE_VERSION=${{ github.event.release.tag_name }}" >> ${GITHUB_ENV}
     
-    - name: Set software version (other)
-      if: (github.event_name == 'pull-request' || github.event_name == 'workflow_dispatch' )
-      run: |
-        echo "SOFTWARE_VERSION=${{ github.event.number }}" >> ${GITHUB_ENV}
-
     - name: Install packages (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
@@ -130,11 +125,16 @@ jobs:
           arm-linux-gnueabihf-strip \
           /target/arm-unknown-linux-gnueabihf/release/umi-transfer
 
+    - name: Set software version (other)
+      if: (github.event_name == 'pull-request' || github.event_name == 'workflow_dispatch' )
+      run: |
+        echo "SOFTWARE_VERSION=${{ env.CARGO_PKG_VERSION }}" >> ${GITHUB_ENV}
+
     - name: Build archive
       shell: bash
       run: |
         staging="umi-transfer-${{ env.SOFTWARE_VERSION }}-${{ matrix.target }}"
-        mkdir -p "$staging"/{complete,doc}
+        mkdir "$staging"
 
         cp {README.md,LICENSE} "$staging/"
         cp -R docs "$staging/docs"
