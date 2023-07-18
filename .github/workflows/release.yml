@@ -10,10 +10,6 @@ on:
   release:
     types: [published]
 
-  push:
-    branches:
-      - BuildAction
-
 jobs:
   # Thanks to Alex Hallam, from whose tidy-viewer release Action all compilation steps were copied (released under UNLICENSE terms)
   # https://github.com/alexhallam/tv
@@ -166,7 +162,7 @@ jobs:
 
         
     - name: Create artifact from binary
-      #if: (github.event_name == 'pull-request' || github.event_name == 'workflow_dispatch' ) && github.event.ref == 'refs/heads/main'
+      if: ((github.event_name == 'push' || github.event_name == 'pull-request' || github.event_name == 'workflow_dispatch' ) && github.event.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.ASSET }}

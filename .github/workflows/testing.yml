@@ -14,8 +14,8 @@ on:
 
 # Run if Rust code has been changed. Readme and other changes are not relevant.
   push:
-  #  paths:
-  #    - '**.rs'
+    paths:
+      - '**.rs'
 
 env:
   CARGO_TERM_COLOR: always
