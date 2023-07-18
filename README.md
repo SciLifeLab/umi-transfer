@@ -19,19 +19,51 @@
 
 ## Background
 
-To increase the accuracy of quantitative DNA sequencing experiments, Unique Molecular Identifiers may be used. UMIs are short sequences used to uniquely tag each molecule in a sample library and facilitate the accurate identification of read duplicates. They must be added during library preparation and prior to sequencing, therefore require appropriate arrangements with your sequencing provider.
+To increase the accuracy of quantitative DNA sequencing experiments, Unique Molecular Identifiers may be used. UMIs are short sequences used to uniquely tag each molecule in a sample library, enabling precise identification of read duplicates. They must be added during library preparation and prior to sequencing, therefore require appropriate arrangements with your sequencing provider.
 
 Most tools capable of taking UMIs into consideration during an analysis workflow, expect the respective UMI sequence to be embedded into the read's ID. Please consult your tools' manuals regarding the exact specification.
 
-For some some library preparation kits and sequencing adapters, the UMI sequence needs to be read together with the index from the antisense strand and thus will be output as a separate FastQ file during demultiplexing.
+For some some library preparation kits and sequencing adapters, the UMI sequence needs to be read together with the index from the antisense strand. Consequently, it will be output as a separate FastQ file during the demultiplexing process.
 
-This tools can integrate those separate UMIs into the headers in an efficient manner and can also correct divergent read numbers back to the canonical `1` and `2`.
+This tool efficiently integrates these separate UMIs into the headers and can also correct divergent read numbers back to the canonical `1` and `2`.
 
 ## Installation
 
+### Binary Installation
+
+Binaries for `umi-transfer` are available for most platforms and can be obtained from the [Releases page on GitHub](https://github.com/SciLifeLab/umi-transfer/releases). Simply navigate to the Releases page and download the appropriate binary of a release for your operating system. Once downloaded, you can add the binary to your system's `$PATH` or place it in a directory of your choice.
+
+### Containerized execution (Docker)
+
+Docker provides a platform for packaging software into self-contained units called containers. Containers encapsulate all the dependencies and libraries needed to run an application, making it easy to deploy and run the software consistently across different environments.
+
+To use `umi-transfer` with Docker, you can _pull_ the pre-made Docker image from Docker Hub. Open a terminal or command prompt and run the following command:
+
+```shell
+docker pull mzscilifelab/umi-transfer:latest
+```
+
+Once the image is downloaded, you can run `umi-transfer` within a Docker container using:
+
+```shell
+docker run -t -v `pwd`:`pwd` -w `pwd` mzscilifelab/umi-transfer:latest umi-transfer --help
+```
+
+A complete command might look like the example below. The options `-t -v -w` to Docker will ensure that your local directory is mapped to and available inside the container. Everything after the image command resembles the standard command line syntax:
+
+```shell
+docker run -t -v `pwd`:`pwd` -w `pwd` mzscilifelab/umi-transfer:latest umi-transfer external --in=read1.fq --in2=read2.fq --umi=umi.fq
+```
+
+Optionally, you can create an alias for the Docker part of the command to be able to use the containerized version as if it was locally installed. Add the line below to your `~/.profile`, `~/.bash_aliases`, `~/.bashrc` or `~/.zprofile` (depending on the terminal & configuration being used).
+
+```shell
+alias umi-transfer="docker run -t -v `pwd`:`pwd` -w `pwd` mzscilifelab/umi-transfer:latest umi-transfer"
+```
+
 ### Compile from source
 
-Given that you have [rust installed](https://www.rust-lang.org/tools/install) on your computer, download this repo and run
+Given that you have [rust installed](https://www.rust-lang.org/tools/install) on your computer, download this repository and run
 
 ```shell
 cargo build --release
@@ -43,6 +75,8 @@ That should create an executable `target/release/umi-transfer` that can be place
 ./target/release/umi-transfer --version
 umi-transfer 0.2.0
 ```
+
+
 
 ## Usage
 
