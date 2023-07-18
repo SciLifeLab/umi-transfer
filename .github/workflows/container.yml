@@ -1,20 +1,16 @@
 name: Publish container images
 
 on:
-  #push:
-  #  branches:
-  #    - dev
-  #  paths:
-  #    - '**.rs'
+  push:
+    branches:
+      - dev
+    paths:
+      - '**.rs'
 
   release:
     types: [published]
 
   workflow_dispatch:
-
-  push:
-    branches:
-      - BuildAction
 
 jobs:
   push_to_registry:
