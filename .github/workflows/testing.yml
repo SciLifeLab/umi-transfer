@@ -76,12 +76,12 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          cargo +nightly tarpaulin --benches --follow-exec --timeout 120 --out Xml
+          cargo +nightly tarpaulin --workspace  --benches --follow-exec --timeout 120 --out Xml
 
-      - name: Upload to codecov.io
-        if: github.repository == 'SciLifeLab/umi-transfer'
-        uses: codecov/codecov-action@v2
-        with:
-          fail_ci_if_error: true
+     # - name: Upload to codecov.io
+     #   if: github.repository == 'SciLifeLab/umi-transfer'
+     #   uses: codecov/codecov-action@v2
+     #   with:
+     #     fail_ci_if_error: true
 
 
