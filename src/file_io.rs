@@ -59,8 +59,7 @@ impl OutputFile {
 
 // Read input file to Reader. Automatically scans if input is compressed with file-format crate.
 pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufReader<ReadFile>>> {
-    fs::metadata(path)
-        .map_err(|_e| anyhow!(RuntimeErrors::FileNotFoundError(Some(path.into()))))?;
+    fs::metadata(path).map_err(|_e| anyhow!(RuntimeErrors::FileNotFound(Some(path.into()))))?;
 
     let format = FileFormat::from_file(path).context("Failed to determine file format")?;
     let reader: ReadFile = match format {
@@ -89,14 +88,14 @@ pub fn output_file(name: PathBuf) -> Result<OutputFile> {
                 read: std::fs::File::create(name.as_path())
                     .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
                     .map(bio::io::fastq::Writer::new)
-                    .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteableError(Some(name))))?,
+                    .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
             })
         } else {
             // File has extension but not gz
             Ok(OutputFile::Fastq {
                 read: std::fs::File::create(name.as_path())
                     .map(bio::io::fastq::Writer::new)
-                    .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteableError(Some(name))))?,
+                    .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
             })
         }
     } else {
@@ -104,7 +103,7 @@ pub fn output_file(name: PathBuf) -> Result<OutputFile> {
         Ok(OutputFile::Fastq {
             read: std::fs::File::create(name.as_path())
                 .map(bio::io::fastq::Writer::new)
-                .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteableError(Some(name))))?,
+                .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
         })
     }
 }
@@ -175,7 +174,7 @@ fn prompt_overwrite(path: PathBuf) -> Result<PathBuf> {
     {
         Ok(path)
     } else {
-        Err(anyhow!(RuntimeErrors::FileExistsError(Some(path))))
+        Err(anyhow!(RuntimeErrors::FileExists(Some(path))))
     }
 }
 
