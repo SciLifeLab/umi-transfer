@@ -133,23 +133,49 @@ pub fn write_to_file(
 
 // Checks whether an output path exists.
 pub fn check_outputpath(path: PathBuf, force: &bool) -> Result<PathBuf> {
-    // check if the path already exists
-    let exists = fs::metadata(&path).is_ok();
+    // Check if the path is "/dev/null" -> can/will be used for singletons.
+    if &path.to_string_lossy() == "/dev/null" {
+        return Ok(path);
+    }
 
-    // return the path of it is ok to write, otherwise an error.
-    if exists & !force {
-        // force will disable prompt, but not the check.
-        if Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt(format!("{} exists. Overwrite?", path.display()))
-            .interact()?
+    /*
+    fs::metadata() returns an Err() if the file does not exist (or there was an error accessing it).
+    map_or() is used to convert the Err to an OK variant of path, because it is safe to write to that path.
+
+    If fs::metadata(path) returns Ok(metadata), it will be inspected further: If it is a FIFO or the --force CLI flag
+    is active, also allow writing. Otherwise prompt and ask for confirmation.
+    */
+    fs::metadata(&path).map_or(Ok(path.clone()), |metadata| {
+        // Since FIFOs are not supported on non-unix platforms, compilation would fail otherwise.
+        #[cfg(unix)]
         {
-            println!("File will be overwritten.");
-            Ok(path)
-        } else {
-            Err(anyhow!(RuntimeErrors::FileExistsError(Some(path))))
+            use std::os::unix::fs::FileTypeExt;
+            // On unix platforms, we want to disable prompts for FIFOs for convenience reasons.
+            if metadata.file_type().is_fifo() || *force {
+                Ok(path)
+            } else {
+                prompt_overwrite(path)
+            }
         }
-    } else {
+        #[cfg(not(unix))]
+        {
+            if *force {
+                Ok(path) // Return Ok(path)
+            } else {
+                prompt_overwrite(path)
+            }
+        }
+    })
+}
+
+fn prompt_overwrite(path: PathBuf) -> Result<PathBuf> {
+    if Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt(format!("{} exists. Overwrite?", path.display()))
+        .interact()?
+    {
         Ok(path)
+    } else {
+        Err(anyhow!(RuntimeErrors::FileExistsError(Some(path))))
     }
 }
 
