@@ -151,7 +151,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
                 read_nr,
             )?;
         } else {
-            return Err(anyhow!(RuntimeErrors::ReadIDMismatchError));
+            return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
         }
 
         if r2_rec.id().eq(ru_rec.id()) {
@@ -165,7 +165,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
                 read_nr,
             )?;
         } else {
-            return Err(anyhow!(RuntimeErrors::ReadIDMismatchError));
+            return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
         }
     }
     println!("Processed {:?} records", counter);
