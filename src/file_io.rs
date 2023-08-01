@@ -80,26 +80,15 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
 }
 
 // Create output files
-pub fn output_file(name: PathBuf) -> Result<OutputFile> {
-    if let Some(extension) = name.extension() {
-        if extension == "gz" {
-            // File has gz extension, which has been enforced by check_outputpath() if -z was provided.
-            Ok(OutputFile::Gzip {
-                read: std::fs::File::create(name.as_path())
-                    .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
-                    .map(bio::io::fastq::Writer::new)
-                    .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
-            })
-        } else {
-            // File has extension but not gz
-            Ok(OutputFile::Fastq {
-                read: std::fs::File::create(name.as_path())
-                    .map(bio::io::fastq::Writer::new)
-                    .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
-            })
-        }
+pub fn output_file(name: PathBuf, compress: &bool) -> Result<OutputFile> {
+    if *compress {
+        Ok(OutputFile::Gzip {
+            read: std::fs::File::create(name.as_path())
+                .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
+                .map(bio::io::fastq::Writer::new)
+                .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
+        })
     } else {
-        //file has no extension. Assume plain-text.
         Ok(OutputFile::Fastq {
             read: std::fs::File::create(name.as_path())
                 .map(bio::io::fastq::Writer::new)
@@ -132,14 +121,14 @@ pub fn write_to_file(
 
 // Checks whether an output path exists.
 pub fn check_outputpath(path: PathBuf, force: &bool) -> Result<PathBuf> {
-    // Check if the path is "/dev/null" -> can/will be used for singletons.
+    // Skip overwrite prompt for "/dev/null" -> can/will be used for singletons.
     if &path.to_string_lossy() == "/dev/null" {
         return Ok(path);
     }
 
     /*
     fs::metadata() returns an Err() if the file does not exist (or there was an error accessing it).
-    map_or() is used to convert the Err to an OK variant of path, because it is safe to write to that path.
+    map_or() is used to convert the Err to an OK variant of path, because it is safe to write to that new path.
 
     If fs::metadata(path) returns Ok(metadata), it will be inspected further: If it is a FIFO or the --force CLI flag
     is active, also allow writing. Otherwise prompt and ask for confirmation.
@@ -180,6 +169,18 @@ fn prompt_overwrite(path: PathBuf) -> Result<PathBuf> {
 
 // Checks whether an output path exists.
 pub fn rectify_extension(mut path: PathBuf, compress: &bool) -> Result<PathBuf> {
+    // Optional code, since compilation would fail on platforms that don't support FIFOs (Windows etc.)
+    #[cfg(unix)]
+    {
+        // output path exists:  Do not change output for FIFOs on unix platforms.
+        if let Some(metadata) = fs::metadata(&path).ok() {
+            use std::os::unix::fs::FileTypeExt;
+            if metadata.file_type().is_fifo() {
+                return Ok(path);
+            }
+        }
+    }
+
     // handle the compression and adapt file extension if necessary.
     if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
         match (*compress, extension.ends_with("gz")) {

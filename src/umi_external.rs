@@ -123,8 +123,8 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     println!("Output 1 will be saved to: {}", output1.to_string_lossy());
     println!("Output 2 will be saved to: {}", output2.to_string_lossy());
 
-    let mut write_file_r1 = file_io::output_file(output1)?;
-    let mut write_file_r2 = file_io::output_file(output2)?;
+    let mut write_file_r1 = file_io::output_file(output1, &args.gzip)?;
+    let mut write_file_r2 = file_io::output_file(output2, &args.gzip)?;
 
     // Record counter
     let mut counter: i32 = 0;
