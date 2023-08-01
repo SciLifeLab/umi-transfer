@@ -73,10 +73,8 @@ That should create an executable `target/release/umi-transfer` that can be place
 
 ```shell
 ./target/release/umi-transfer --version
-umi-transfer 0.2.0
+umi-transfer 1.0.0
 ```
-
-
 
 ## Usage
 
@@ -123,15 +121,23 @@ OPTIONS:
 
 ### Example
 
+A run with just the mandatory arguments may look like this:
+
 ```shell
 umi-transfer external -fz -d '_' --in 'R1.fastq' --in2 'R3.fastq' --umi 'R2.fastq'
+```
+
+`umi-transfer` warrants paired input files. To run on singletons, use the same input twice and redirect one output to `/dev/null`:
+
+```shell
+umi-transfer external --in read1.fastq --in2 read1.fastq --umi read2.fastq --out output1.fastq --out2 /dev/null
 ```
 
 ### High Performance Guide
 
 The performance bottleneck of UMI integration is output file compression. [Parallel Gzip](https://github.com/madler/pigz) can be used on modern multi-processor, multi-core machines to significantly outclass the single-threaded compression that ships with `umi-transfer`.
 
-We recommend using Unix FIFOs (First In, First Out buffered pipes) to combine `umi-transfer` and `pigz`:
+We recommend using Unix FIFOs (First In, First Out buffered pipes) to combine `umi-transfer` and `pigz` on GNU/Linux and MacOS operating systems:
 
 ```shell
 mkfifo read1.fastq
@@ -168,8 +174,8 @@ prw-rw-r--. 1 alneberg ngisweden    0 Apr 13 12:46 read3.fastq
 We continue to create FIFOs for the output files:
 
 ```shell
-$ mkfifo output1.fastq
-$ mkfifo output2.fastq
+mkfifo output1.fastq
+mkfifo output2.fastq
 ```
 
 and set-up a multi-threaded `pigz` compression process each:
@@ -186,10 +192,8 @@ The argument `-p 10` specifies the number of threads that each `pigz` processes 
 Finally, we can then run `umi-transfer` using the FIFOs like so:
 
 ```shell
-umi-transfer external --force --in read1.fastq --in2 read3.fastq --umi read2.fastq --out output1.fastq --out2 output2.fastq
+umi-transfer external --in read1.fastq --in2 read3.fastq --umi read2.fastq --out output1.fastq --out2 output2.fastq
 ```
-
-`--force` is optional and skips the prompt whether existing output files may be overwritten, which will be triggered by the prepared FIFOs.
 
 It's good practice to remove the FIFOs after the program has finished:
 
