@@ -173,7 +173,7 @@ pub fn rectify_extension(mut path: PathBuf, compress: &bool) -> Result<PathBuf> 
     #[cfg(unix)]
     {
         // output path exists:  Do not change output for FIFOs on unix platforms.
-        if let Some(metadata) = fs::metadata(&path).ok() {
+        if let Ok(metadata) = fs::metadata(&path) {
             use std::os::unix::fs::FileTypeExt;
             if metadata.file_type().is_fifo() {
                 return Ok(path);
