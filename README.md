@@ -23,7 +23,7 @@ To increase the accuracy of quantitative DNA sequencing experiments, Unique Mole
 
 Most tools capable of taking UMIs into consideration during an analysis workflow, expect the respective UMI sequence to be embedded into the read's ID. Please consult your tools' manuals regarding the exact specification.
 
-For some some library preparation kits and sequencing adapters, the UMI sequence needs to be read together with the index from the antisense strand. Consequently, it will be output as a separate FastQ file during the demultiplexing process.
+For some library preparation kits and sequencing adapters, the UMI sequence needs to be read together with the index from the antisense strand. Consequently, it will be output as a separate FastQ file during the demultiplexing process.
 
 This tool efficiently integrates these separate UMIs into the headers and can also correct divergent read numbers back to the canonical `1` and `2`.
 
