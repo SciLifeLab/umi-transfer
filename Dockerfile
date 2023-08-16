@@ -15,4 +15,6 @@ FROM debian:bullseye-slim as runner
 WORKDIR /root
 COPY --from=buildenv /usr/app/src/target/release/ /usr/local/bin/
 RUN chmod +x /usr/local/bin/umi-transfer
-CMD /usr/local/bin/umi-transfer
+
+ENV WHISPER_MODEL=$WHISPER_MODEL
+CMD [ "/bin/bash", "-l","-c"]
