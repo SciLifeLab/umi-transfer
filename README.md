@@ -31,7 +31,21 @@ This tool efficiently integrates these separate UMIs into the headers and can al
 
 ### Binary Installation
 
-Binaries for `umi-transfer` are available for most platforms and can be obtained from the [Releases page on GitHub](https://github.com/SciLifeLab/umi-transfer/releases). Simply navigate to the Releases page and download the appropriate binary of a release for your operating system. Once downloaded, you can add the binary to your system's `$PATH` or place it in a directory of your choice.
+Binaries for `umi-transfer` are available for most platforms and can be obtained from the [Releases page on GitHub](https://github.com/SciLifeLab/umi-transfer/releases). Simply navigate to the Releases page and download the appropriate binary of a release for your operating system. Once downloaded, you can place it in a directory of your choice and [optionally add the binary to your system's `$PATH`](https://astrobiomike.github.io/unix/modifying_your_path).
+
+### Bioconda
+
+ `umi-transfer` is also available on [BioConda](https://bioconda.github.io/). Please refer to the [Bioconda documentation](https://bioconda.github.io/recipes/umi-transfer/README.html#package-umi-transfer) for comprehensive installation instructions. If you are already familiar with conda and BioConda, here’s a quick reference:
+
+```shell
+mamba install umi-transfer
+```
+
+If you wish to create a separate virtual environment for the tool, replace `<myenvname>` with a suitable environment name of your choice and run
+
+```shell
+mamba create --name <myenvname> umi-transfer
+```
 
 ### Containerized execution (Docker)
 
