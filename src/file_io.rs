@@ -3,35 +3,30 @@ use anyhow::{anyhow, Context, Result};
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
 use regex::Regex;
-use std::{fs, path::Path, path::PathBuf};
-
-// Defining types for simplicity
-type File = std::fs::File;
-type Fastq = std::io::BufReader<File>;
-type Gzip = flate2::bufread::MultiGzDecoder<Fastq>;
+use std::{fs, fs::File, path::Path, path::PathBuf};
 
 // Enum for the two acceptable input file formats: '.fastq' and '.fastq.gz'
-pub enum ReadFile {
-    Fastq(std::io::BufReader<File>),
-    Gzip(Box<Gzip>),
+pub enum InputFile {
+    Plain(std::io::BufReader<File>),
+    Compressed(Box<flate2::bufread::MultiGzDecoder<std::io::BufReader<File>>>),
 }
 
-// Implement read for ReadFile enum
-impl std::io::Read for ReadFile {
+// Implement read for InputFile enum
+impl std::io::Read for InputFile {
     fn read(&mut self, into: &mut [u8]) -> std::io::Result<usize> {
         match self {
-            ReadFile::Fastq(buf_reader) => buf_reader.read(into),
-            ReadFile::Gzip(buf_reader) => buf_reader.read(into),
+            InputFile::Plain(buf_reader) => buf_reader.read(into),
+            InputFile::Compressed(buf_reader) => buf_reader.read(into),
         }
     }
 }
 
 // Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
 pub enum OutputFile {
-    Fastq {
+    Plain {
         read: bio::io::fastq::Writer<File>,
     },
-    Gzip {
+    Compressed {
         read: bio::io::fastq::Writer<flate2::write::GzEncoder<File>>,
     },
 }
@@ -45,12 +40,12 @@ impl OutputFile {
         s: bio::io::fastq::Record,
     ) -> Result<OutputFile> {
         match self {
-            OutputFile::Fastq { mut read } => match read.write(header, desc, s.seq(), s.qual()) {
-                Ok(_) => Ok(OutputFile::Fastq { read }),
+            OutputFile::Plain { mut read } => match read.write(header, desc, s.seq(), s.qual()) {
+                Ok(_) => Ok(OutputFile::Plain { read }),
                 Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
             },
-            OutputFile::Gzip { mut read } => match read.write(header, desc, s.seq(), s.qual()) {
-                Ok(_) => Ok(OutputFile::Gzip { read }),
+            OutputFile::Compressed { mut read } => match read.write(header, desc, s.seq(), s.qual()) {
+                Ok(_) => Ok(OutputFile::Compressed { read }),
                 Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
             },
         }
@@ -58,21 +53,21 @@ impl OutputFile {
 }
 
 // Read input file to Reader. Automatically scans if input is compressed with file-format crate.
-pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufReader<ReadFile>>> {
+pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufReader<InputFile>>> {
     fs::metadata(path).map_err(|_e| anyhow!(RuntimeErrors::FileNotFound(Some(path.into()))))?;
 
     let format = FileFormat::from_file(path).context("Failed to determine file format")?;
-    let reader: ReadFile = match format {
+    let reader: InputFile = match format {
         FileFormat::Gzip => {
             let file = File::open(path)
                 .map(std::io::BufReader::new)
                 .with_context(|| format!("Failed to open file: {:?}", path))?;
-            ReadFile::Gzip(Box::new(flate2::bufread::MultiGzDecoder::new(file)))
+            InputFile::Compressed(Box::new(flate2::bufread::MultiGzDecoder::new(file)))
         }
         _ => {
             let file =
                 File::open(path).with_context(|| format!("Failed to open file: {:?}", path))?;
-            ReadFile::Fastq(std::io::BufReader::new(file))
+            InputFile::Plain(std::io::BufReader::new(file))
         }
     };
 
@@ -82,14 +77,14 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
 // Create output files
 pub fn output_file(name: PathBuf, compress: &bool) -> Result<OutputFile> {
     if *compress {
-        Ok(OutputFile::Gzip {
+        Ok(OutputFile::Compressed {
             read: std::fs::File::create(name.as_path())
                 .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
                 .map(bio::io::fastq::Writer::new)
                 .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
         })
     } else {
-        Ok(OutputFile::Fastq {
+        Ok(OutputFile::Plain {
             read: std::fs::File::create(name.as_path())
                 .map(bio::io::fastq::Writer::new)
                 .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
