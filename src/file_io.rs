@@ -2,8 +2,9 @@ use super::umi_errors::RuntimeErrors;
 use anyhow::{anyhow, Context, Result};
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
+use gzp::{deflate::Gzip, ZBuilder, ZWriter};
 use regex::Regex;
-use std::{fs, fs::File, path::Path, path::PathBuf};
+use std::{fs, fs::File, io::Write, path::Path, path::PathBuf};
 
 // Enum for the two acceptable input file formats: '.fastq' and '.fastq.gz'
 pub enum InputFile {
@@ -27,7 +28,7 @@ pub enum OutputFile {
         read: bio::io::fastq::Writer<File>,
     },
     Compressed {
-        read: bio::io::fastq::Writer<flate2::write::GzEncoder<File>>,
+        read: bio::io::fastq::Writer<Box<dyn Write + Send>>,
     },
 }
 
@@ -39,12 +40,13 @@ impl OutputFile {
         desc: Option<&str>,
         s: bio::io::fastq::Record,
     ) -> Result<OutputFile> {
+        let record = bio::io::fastq::Record::with_attrs(header, desc, s.seq(), s.qual());
         match self {
-            OutputFile::Plain { mut read } => match read.write(header, desc, s.seq(), s.qual()) {
+            OutputFile::Plain { mut read } => match read.write_record(&record) {
                 Ok(_) => Ok(OutputFile::Plain { read }),
                 Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
             },
-            OutputFile::Compressed { mut read } => match read.write(header, desc, s.seq(), s.qual()) {
+            OutputFile::Compressed { mut read } => match read.write_record(&record) {
                 Ok(_) => Ok(OutputFile::Compressed { read }),
                 Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
             },
@@ -79,8 +81,11 @@ pub fn output_file(name: PathBuf, compress: &bool) -> Result<OutputFile> {
     if *compress {
         Ok(OutputFile::Compressed {
             read: std::fs::File::create(name.as_path())
-                .map(|w| flate2::write::GzEncoder::new(w, flate2::Compression::default()))
-                .map(bio::io::fastq::Writer::new)
+            .map(|w| {
+                let writer = ZBuilder::<Gzip, _>::new().num_threads(0).from_writer(w);
+                let writer: Box<dyn Write + Send> = Box::new(writer);
+                bio::io::fastq::Writer::new(writer)
+            })
                 .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
         })
     } else {
