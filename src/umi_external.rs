@@ -123,8 +123,8 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     println!("Output 1 will be saved to: {}", output1.to_string_lossy());
     println!("Output 2 will be saved to: {}", output2.to_string_lossy());
 
-    let mut write_file_r1 = file_io::output_file(output1, &args.gzip)?;
-    let mut write_file_r2 = file_io::output_file(output2, &args.gzip)?;
+    //let mut write_file_r1 = file_io::output_file(output1, &args.gzip)?;
+    //let mut write_file_r2 = file_io::output_file(output2, &args.gzip)?;
 
     // Record counter
     let mut counter: i32 = 0;
@@ -133,8 +133,8 @@ pub fn run(args: OptsExternal) -> Result<i32> {
 
     // Iterate over records in input files
     for (r1_rec_res, ru_rec_res, r2_rec_res) in izip!(r1, ru, r2) {
-        let r1_rec = r1_rec_res?;
-        let r2_rec = r2_rec_res?;
+        let mut r1_rec = r1_rec_res?;
+        let mut r2_rec = r2_rec_res?;
         let ru_rec = ru_rec_res?;
 
         // Step counter
@@ -143,13 +143,15 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         if r1_rec.id().eq(ru_rec.id()) {
             // Write to Output file
             let read_nr = if edit_nr { Some(1) } else { None };
-            write_file_r1 = file_io::write_to_file(
+            let r1_rec = update_record(
                 r1_rec,
-                write_file_r1,
                 ru_rec.seq(),
                 args.delim.as_ref(),
                 read_nr,
             )?;
+
+            //TODO: Write record to output file
+
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
         }
@@ -157,17 +159,42 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         if r2_rec.id().eq(ru_rec.id()) {
             // Write to Output file
             let read_nr = if edit_nr { Some(2) } else { None };
-            write_file_r2 = file_io::write_to_file(
+            let r2_rec = update_record(
                 r2_rec,
-                write_file_r2,
                 ru_rec.seq(),
                 args.delim.as_ref(),
                 read_nr,
             )?;
+
+            //TODO: Write record to output file
+
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
         }
     }
     println!("Processed {:?} records", counter);
     Ok(counter)
+}
+
+
+// Updates the header and description of the reads accordingly
+fn update_record(
+    input: bio::io::fastq::Record,
+    umi: &[u8],
+    umi_sep: Option<&String>,
+    edit_nr: Option<u8>,
+) -> Result<bio::io::fastq::Record> {
+    let delim = umi_sep.as_ref().map(|s| s.as_str()).unwrap_or(":"); // the delimiter for the UMI
+    if let Some(number) = edit_nr {
+        let new_id = &[input.id(), delim, std::str::from_utf8(umi).unwrap()].concat();
+        let mut new_desc = String::from(input.desc().unwrap());
+        new_desc.replace_range(0..1, &number.to_string());
+        let desc: Option<&str> = Some(&new_desc);
+        let new_record = bio::io::fastq::Record::with_attrs(new_id, desc, input.seq(), input.qual());
+        Ok(new_record)
+    } else {
+        let new_id = &[input.id(), delim, std::str::from_utf8(umi).unwrap()].concat();
+        let new_record = bio::io::fastq::Record::with_attrs(new_id, input.desc(), input.seq(), input.qual());
+        Ok(new_record)
+    }
 }
