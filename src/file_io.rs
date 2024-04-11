@@ -2,9 +2,13 @@ use super::umi_errors::RuntimeErrors;
 use anyhow::{anyhow, Context, Result};
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
-use gzp::{deflate::Gzip, ZBuilder, ZWriter};
+use gzp::{deflate::Gzip, par::compress::Compression, ZBuilder, ZWriter};
 use regex::Regex;
 use std::{fs, fs::File, io::Write, path::Path, path::PathBuf};
+
+////////////////////////////////////////////////////////////////
+//  READ INPUT FILE
+////////////////////////////////////////////////////////////////
 
 // Enum for the two acceptable input file formats: '.fastq' and '.fastq.gz'
 pub enum InputFile {
@@ -18,38 +22,6 @@ impl std::io::Read for InputFile {
         match self {
             InputFile::Plain(buf_reader) => buf_reader.read(into),
             InputFile::Compressed(buf_reader) => buf_reader.read(into),
-        }
-    }
-}
-
-// Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
-pub enum OutputFile {
-    Plain {
-        read: bio::io::fastq::Writer<File>,
-    },
-    Compressed {
-        read: bio::io::fastq::Writer<Box<dyn Write + Send>>,
-    },
-}
-
-// Implement write for OutputFile enum
-impl OutputFile {
-    pub fn write(
-        self,
-        header: &str,
-        desc: Option<&str>,
-        s: bio::io::fastq::Record,
-    ) -> Result<OutputFile> {
-        let record = bio::io::fastq::Record::with_attrs(header, desc, s.seq(), s.qual());
-        match self {
-            OutputFile::Plain { mut read } => match read.write_record(&record) {
-                Ok(_) => Ok(OutputFile::Plain { read }),
-                Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
-            },
-            OutputFile::Compressed { mut read } => match read.write_record(&record) {
-                Ok(_) => Ok(OutputFile::Compressed { read }),
-                Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
-            },
         }
     }
 }
@@ -74,6 +46,58 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
     };
 
     Ok(bio::io::fastq::Reader::new(reader))
+}
+
+
+////////////////////////////////////////////////////////////////
+// WRITE OUTPUT FILE
+////////////////////////////////////////////////////////////////
+
+// Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
+pub enum OutputFile {
+    Plain,
+    Compressed,
+}
+
+// Implement write for OutputFile enum
+impl OutputFile {
+    pub fn write(
+        self,
+        header: &str,
+        desc: Option<&str>,
+        s: bio::io::fastq::Record,
+    ) -> Result<OutputFile> {
+        let record = bio::io::fastq::Record::with_attrs(header, desc, s.seq(), s.qual());
+        match self {
+            OutputFile::Plain { mut read } => match read.write_record(&record) {
+                Ok(_) => Ok(OutputFile::Plain { read }),
+                Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
+            },
+            OutputFile::Compressed { mut read } => match read.write_record(&record) {
+                Ok(_) => Ok(OutputFile::Compressed { read }),
+                Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
+            },
+        }
+    }
+        /// Create a compressor writer matching the selected format
+    fn create_compressor<W>(
+        &self,
+        writer: W,
+        num_threads: usize,
+        compression_level: u32,
+        pin_at: Option<usize>,
+    ) -> Box<dyn ZWriter>
+    where
+        W: Write + Send + 'static,
+    {
+        match self {
+            OutputFile::Compressed => ZBuilder::<Gzip, _>::new()
+                .num_threads(num_threads)
+                .compression_level(Compression::new(compression_level))
+                .pin_threads(pin_at)
+                .from_writer(writer)
+        }
+    }
 }
 
 // Create output files
@@ -118,6 +142,10 @@ pub fn write_to_file(
         output.write(header, s.desc(), s.clone())
     }
 }
+
+////////////////////////////////////////////////////////////////
+//  OTHER UTILITIES
+////////////////////////////////////////////////////////////////
 
 // Checks whether an output path exists.
 pub fn check_outputpath(path: PathBuf, force: &bool) -> Result<PathBuf> {
