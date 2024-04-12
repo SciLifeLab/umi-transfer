@@ -4,7 +4,7 @@ use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
 use gzp::{deflate::Gzip, par::compress::Compression, ZBuilder, ZWriter};
 use regex::Regex;
-use std::{fs, fs::File, io::Write, path::Path, path::PathBuf};
+use std::{fs, fs::File, io::BufWriter, io::Write, path::Path, path::PathBuf};
 
 ////////////////////////////////////////////////////////////////
 //  READ INPUT FILE
@@ -55,91 +55,44 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
 
 // Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
 pub enum OutputFile {
-    Plain,
-    Compressed,
+    Plain(BufWriter<File>),
+    Compressed(Box<dyn ZWriter>),
 }
 
-// Implement write for OutputFile enum
-impl OutputFile {
-    pub fn write(
-        self,
-        header: &str,
-        desc: Option<&str>,
-        s: bio::io::fastq::Record,
-    ) -> Result<OutputFile> {
-        let record = bio::io::fastq::Record::with_attrs(header, desc, s.seq(), s.qual());
+impl std::io::Write for OutputFile {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         match self {
-            OutputFile::Plain { mut read } => match read.write_record(&record) {
-                Ok(_) => Ok(OutputFile::Plain { read }),
-                Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
-            },
-            OutputFile::Compressed { mut read } => match read.write_record(&record) {
-                Ok(_) => Ok(OutputFile::Compressed { read }),
-                Err(_) => Err(anyhow!(RuntimeErrors::ReadWriteError(s))),
-            },
+            OutputFile::Plain(writer) => writer.write(buf),
+            OutputFile::Compressed(writer) => writer.write(buf),
         }
     }
-        /// Create a compressor writer matching the selected format
-    fn create_compressor<W>(
-        &self,
-        writer: W,
-        num_threads: usize,
-        compression_level: u32,
-        pin_at: Option<usize>,
-    ) -> Box<dyn ZWriter>
-    where
-        W: Write + Send + 'static,
-    {
+
+    fn flush(&mut self) -> std::io::Result<()> {
         match self {
-            OutputFile::Compressed => ZBuilder::<Gzip, _>::new()
-                .num_threads(num_threads)
-                .compression_level(Compression::new(compression_level))
-                .pin_threads(pin_at)
-                .from_writer(writer)
+            OutputFile::Plain(writer) => writer.flush(),
+            OutputFile::Compressed(writer) => writer.flush(),
         }
     }
 }
 
-// Create output files
-pub fn output_file(name: PathBuf, compress: &bool) -> Result<OutputFile> {
-    if *compress {
-        Ok(OutputFile::Compressed {
-            read: std::fs::File::create(name.as_path())
-            .map(|w| {
-                let writer = ZBuilder::<Gzip, _>::new().num_threads(0).from_writer(w);
-                let writer: Box<dyn Write + Send> = Box::new(writer);
-                bio::io::fastq::Writer::new(writer)
-            })
-                .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
-        })
-    } else {
-        Ok(OutputFile::Plain {
-            read: std::fs::File::create(name.as_path())
-                .map(bio::io::fastq::Writer::new)
-                .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(name))))?,
-        })
-    }
-}
-
-// Writes record with properly inserted UMI to Output file
-pub fn write_to_file(
-    input: bio::io::fastq::Record,
-    output: OutputFile,
-    umi: &[u8],
-    umi_sep: Option<&String>,
-    edit_nr: Option<u8>,
+pub fn create_writer(
+    path: PathBuf,
+    compress: bool,
+    num_threads: usize,
+    compression_level: u32,
+    pin_at: Option<usize>,
 ) -> Result<OutputFile> {
-    let s = input;
-    let delim = umi_sep.as_ref().map(|s| s.as_str()).unwrap_or(":"); // the delimiter for the UMI
-    if let Some(number) = edit_nr {
-        let header = &[s.id(), delim, std::str::from_utf8(umi).unwrap()].concat();
-        let mut string = String::from(s.desc().unwrap());
-        string.replace_range(0..1, &number.to_string());
-        let desc: Option<&str> = Some(&string);
-        output.write(header, desc, s)
+    let file = File::create(&path)
+        .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(path.clone()))))?;
+    if compress {
+        let writer = ZBuilder::<Gzip, _>::new()
+            .num_threads(num_threads)
+            .compression_level(Compression::new(compression_level))
+            .pin_threads(pin_at)
+            .from_writer(file);
+        Ok(OutputFile::Compressed(writer))
     } else {
-        let header = &[s.id(), delim, std::str::from_utf8(umi).unwrap()].concat();
-        output.write(header, s.desc(), s.clone())
+        Ok(OutputFile::Plain(BufWriter::new(file)))
     }
 }
 
