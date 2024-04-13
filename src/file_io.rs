@@ -5,7 +5,7 @@ use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
 use gzp::{deflate::Gzip, par::compress::Compression, ZBuilder, ZWriter};
 use regex::Regex;
-use std::{fs, fs::File, io::BufWriter, io::Write, path::Path, path::PathBuf};
+use std::{fs, fs::File, io::BufWriter, path::Path, path::PathBuf};
 
 ////////////////////////////////////////////////////////////////
 //  READ INPUT FILE
@@ -64,10 +64,14 @@ impl OutputFile {
     pub fn write_record(
         &mut self,
         record: Record,
-    ) -> std::io::Result<()> {
+    ) -> Result<()> {
         match self {
-            OutputFile::Plain(writer) => writer.write(record.id(), record.desc(), record.seq(), record.qual()),
-            OutputFile::Compressed(writer) => writer.write(record.id(), record.desc(), record.seq(), record.qual()),
+            OutputFile::Plain(writer) => 
+            writer.write(record.id(), record.desc(), record.seq(), record.qual())
+            .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
+            OutputFile::Compressed(writer) => 
+            writer.write(record.id(), record.desc(), record.seq(), record.qual())
+            .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
         }
     }
 }
