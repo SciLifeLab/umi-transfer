@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use itertools::izip;
-use std::path::PathBuf;
+use std::{path::PathBuf, thread};
 
 use super::file_io;
 use crate::umi_errors::RuntimeErrors;
@@ -21,6 +21,27 @@ pub struct OptsExternal {
         \n "
     )]
     gzip: bool,
+    #[clap(
+        short = 'l',
+        long = "compression_level",
+        help = "Choose the compression level: Maximum 9, defaults to 3. Higher numbers result in smaller files but take longer to compress.
+        \n ",
+    )]
+    compression_level: Option<u32>,
+    #[clap(
+        short = 't',
+        long = "threads",
+        help = "Number of threads to use for processing. Defaults to the number of logical cores available.
+        \n ",
+    )]
+    num_threads: Option<usize>,
+    //#[clap(
+    //    short = 'p',
+    //    long = "pin_threads",
+    //    help = "Pin threads to physical cores. This can provide a significant performance improvement, but has the downside of possibly conflicting with other pinned cores.
+    //    \n "
+    //)]
+    // pin_threads: bool,
     #[clap(
         short = 'f',
         long = "force",
@@ -72,11 +93,23 @@ pub struct OptsExternal {
 }
 
 pub fn run(args: OptsExternal) -> Result<i32> {
+
     // Enables editing id in output file 2 if --edit-nr flag was included
     let mut edit_nr = false;
     if args.edit_nr {
         edit_nr = true;
     }
+
+    // Set the number of threads to max, unless manually specified. In case of failure, use only 1.
+    let num_threads = args.num_threads.unwrap_or_else(|| {
+        thread::available_parallelism()
+            .map(|cores| cores.get())
+            .with_context(|| {
+                format!(
+                    "Failed to determine number of available threads. Please specify manually with --threads."
+                )})
+            .unwrap_or_else(|_| {1})
+    });
 
     // Read FastQ records from input files
     let r1 = file_io::read_fastq(&args.r1_in)
@@ -123,8 +156,18 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     println!("Output 1 will be saved to: {}", output1.to_string_lossy());
     println!("Output 2 will be saved to: {}", output2.to_string_lossy());
 
-    //let mut write_file_r1 = file_io::output_file(output1, &args.gzip)?;
-    //let mut write_file_r2 = file_io::output_file(output2, &args.gzip)?;
+    let mut write_output_r1 = file_io::create_writer(
+        output1, 
+        &args.gzip, 
+        &num_threads,  
+        &args.compression_level, 
+        None)?;
+    let mut write_output_r2 = file_io::create_writer(
+        output2, 
+        &args.gzip, 
+        &num_threads,  
+        &args.compression_level,
+        None)?;
 
     // Record counter
     let mut counter: i32 = 0;
@@ -133,8 +176,8 @@ pub fn run(args: OptsExternal) -> Result<i32> {
 
     // Iterate over records in input files
     for (r1_rec_res, ru_rec_res, r2_rec_res) in izip!(r1, ru, r2) {
-        let mut r1_rec = r1_rec_res?;
-        let mut r2_rec = r2_rec_res?;
+        let r1_rec = r1_rec_res?;
+        let r2_rec = r2_rec_res?;
         let ru_rec = ru_rec_res?;
 
         // Step counter
@@ -150,7 +193,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
                 read_nr,
             )?;
 
-            //TODO: Write record to output file
+            write_output_r1.write_record(r1_rec)?;
 
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
@@ -166,7 +209,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
                 read_nr,
             )?;
 
-            //TODO: Write record to output file
+            write_output_r2.write_record(r2_rec)?;
 
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatch));

@@ -1,7 +1,6 @@
 use super::umi_errors::RuntimeErrors;
 use anyhow::{anyhow, Context, Result};
-use bio::io::fastq::Writer as FastqWriter;
-use bio::utils::TextSlice;
+use bio::io::fastq::{Record, Writer as FastqWriter};
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
 use gzp::{deflate::Gzip, par::compress::Compression, ZBuilder, ZWriter};
@@ -64,31 +63,28 @@ pub enum OutputFile {
 impl OutputFile {
     pub fn write_record(
         &mut self,
-        id: &str,
-        desc: Option<&str>,
-        seq: TextSlice<'_>,
-        qual: &[u8],
+        record: Record,
     ) -> std::io::Result<()> {
         match self {
-            OutputFile::Plain(writer) => writer.write(id, desc, seq, qual),
-            OutputFile::Compressed(writer) => writer.write(id, desc, seq, qual),
+            OutputFile::Plain(writer) => writer.write(record.id(), record.desc(), record.seq(), record.qual()),
+            OutputFile::Compressed(writer) => writer.write(record.id(), record.desc(), record.seq(), record.qual()),
         }
     }
 }
 
 pub fn create_writer(
     path: PathBuf,
-    compress: bool,
-    num_threads: usize,
-    compression_level: u32,
+    compress: &bool,
+    num_threads: &usize,
+    compression_level: &Option<u32>,
     pin_at: Option<usize>,
 ) -> Result<OutputFile> {
     let file = File::create(&path)
         .map_err(|_e| anyhow!(RuntimeErrors::OutputNotWriteable(Some(path.clone()))))?;
-    if compress {
+    if *compress {
         let writer = ZBuilder::<Gzip, _>::new()
-            .num_threads(num_threads)
-            .compression_level(Compression::new(compression_level))
+            .num_threads(*num_threads)
+            .compression_level(compression_level.map_or_else(Default::default, |l| Compression::new((l as u32).clamp(1, 9))))
             .pin_threads(pin_at)
             .from_writer(file);
         Ok(OutputFile::Compressed(FastqWriter::from_bufwriter(BufWriter::new(writer))))
