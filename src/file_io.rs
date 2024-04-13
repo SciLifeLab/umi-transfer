@@ -1,5 +1,7 @@
 use super::umi_errors::RuntimeErrors;
 use anyhow::{anyhow, Context, Result};
+use bio::io::fastq::Writer as FastqWriter;
+use bio::utils::TextSlice;
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
 use gzp::{deflate::Gzip, par::compress::Compression, ZBuilder, ZWriter};
@@ -55,22 +57,21 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
 
 // Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
 pub enum OutputFile {
-    Plain(BufWriter<File>),
-    Compressed(Box<dyn ZWriter>),
+    Plain(FastqWriter<File>),
+    Compressed(FastqWriter<Box<dyn ZWriter>>),
 }
 
-impl std::io::Write for OutputFile {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+impl OutputFile {
+    pub fn write_record(
+        &mut self,
+        id: &str,
+        desc: Option<&str>,
+        seq: TextSlice<'_>,
+        qual: &[u8],
+    ) -> std::io::Result<()> {
         match self {
-            OutputFile::Plain(writer) => writer.write(buf),
-            OutputFile::Compressed(writer) => writer.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        match self {
-            OutputFile::Plain(writer) => writer.flush(),
-            OutputFile::Compressed(writer) => writer.flush(),
+            OutputFile::Plain(writer) => writer.write(id, desc, seq, qual),
+            OutputFile::Compressed(writer) => writer.write(id, desc, seq, qual),
         }
     }
 }
@@ -90,9 +91,9 @@ pub fn create_writer(
             .compression_level(Compression::new(compression_level))
             .pin_threads(pin_at)
             .from_writer(file);
-        Ok(OutputFile::Compressed(writer))
+        Ok(OutputFile::Compressed(FastqWriter::from_bufwriter(BufWriter::new(writer))))
     } else {
-        Ok(OutputFile::Plain(BufWriter::new(file)))
+        Ok(OutputFile::Plain(FastqWriter::new(file)))
     }
 }
 
