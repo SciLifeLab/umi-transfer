@@ -67,7 +67,7 @@ jobs:
 
     steps:
     - name: Check out the repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
     - name: Set software version (release)
       if: github.event_name == 'release'
@@ -93,12 +93,13 @@ jobs:
         brew install asciidoctor
 
     - name: Install Rust
-      uses: ructions/toolchain@v2
+      uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.rust }}
-        profile: minimal
-        override: true
-        target: ${{ matrix.target }}
+        targets: ${{ matrix.target }}
+    
+    - name: Cache Rust toolchain
+      uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
 
     - name: Use Cross
       shell: bash
