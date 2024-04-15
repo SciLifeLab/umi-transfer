@@ -75,12 +75,15 @@ jobs:
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
       with:
-        components: clippy,clippy-sarif,sarif-fmt
+        components: clippy
+
+    - name: Install sarif-rs
+      run: cargo install sarif-fmt clippy-sarif
 
     - name: Cache Rust toolchain
       uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
     
-    - name: Test Libraries
+    - name: Test Libraries and pretty-print output
       run:  cargo clippy --all-targets --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
       continue-on-error: true
     
