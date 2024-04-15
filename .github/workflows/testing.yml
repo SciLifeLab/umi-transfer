@@ -74,14 +74,14 @@ jobs:
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy,clippy-sarif,sarif-fmt
 
     - name: Cache Rust toolchain
       uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
     
     - name: Test Libraries
-      run:  cargo clippy 
-            --all-targets
-            --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
+      run:  cargo clippy --all-targets --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
       continue-on-error: true
     
     - name: Create an artifact from clippy results
@@ -91,7 +91,7 @@ jobs:
         path: rust-clippy-results.sarif
 
     - name: Upload clippy analysis results to GitHub
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: rust-clippy-results.sarif
         wait-for-processing: true
