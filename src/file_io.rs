@@ -49,7 +49,6 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
     Ok(bio::io::fastq::Reader::new(reader))
 }
 
-
 ////////////////////////////////////////////////////////////////
 // WRITE OUTPUT FILE
 ////////////////////////////////////////////////////////////////
@@ -61,17 +60,14 @@ pub enum OutputFile {
 }
 
 impl OutputFile {
-    pub fn write_record(
-        &mut self,
-        record: Record,
-    ) -> Result<()> {
+    pub fn write_record(&mut self, record: Record) -> Result<()> {
         match self {
-            OutputFile::Plain(writer) => 
-            writer.write(record.id(), record.desc(), record.seq(), record.qual())
-            .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
-            OutputFile::Compressed(writer) => 
-            writer.write(record.id(), record.desc(), record.seq(), record.qual())
-            .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
+            OutputFile::Plain(writer) => writer
+                .write(record.id(), record.desc(), record.seq(), record.qual())
+                .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
+            OutputFile::Compressed(writer) => writer
+                .write(record.id(), record.desc(), record.seq(), record.qual())
+                .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
         }
     }
 }
@@ -88,10 +84,14 @@ pub fn create_writer(
     if *compress {
         let writer = ZBuilder::<Gzip, _>::new()
             .num_threads(*num_threads)
-            .compression_level(compression_level.map_or_else(Default::default, |l| Compression::new((l as u32).clamp(1, 9))))
+            .compression_level(compression_level.map_or_else(Default::default, |l| {
+                Compression::new((l as u32).clamp(1, 9))
+            }))
             .pin_threads(pin_at)
             .from_writer(file);
-        Ok(OutputFile::Compressed(FastqWriter::from_bufwriter(BufWriter::new(writer))))
+        Ok(OutputFile::Compressed(FastqWriter::from_bufwriter(
+            BufWriter::new(writer),
+        )))
     } else {
         Ok(OutputFile::Plain(FastqWriter::new(file)))
     }
