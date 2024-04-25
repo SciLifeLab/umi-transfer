@@ -25,14 +25,14 @@ pub struct OptsExternal {
         short = 'l',
         long = "compression_level",
         help = "Choose the compression level: Maximum 9, defaults to 3. Higher numbers result in smaller files but take longer to compress.
-        \n ",
+        \n "
     )]
     compression_level: Option<u32>,
     #[clap(
         short = 't',
         long = "threads",
         help = "Number of threads to use for processing. Defaults to the number of logical cores available.
-        \n ",
+        \n "
     )]
     num_threads: Option<usize>,
     //#[clap(
@@ -93,7 +93,6 @@ pub struct OptsExternal {
 }
 
 pub fn run(args: OptsExternal) -> Result<i32> {
-
     // Enables editing id in output file 2 if --edit-nr flag was included
     let mut edit_nr = false;
     if args.edit_nr {
@@ -157,17 +156,19 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     println!("Output 2 will be saved to: {}", output2.to_string_lossy());
 
     let mut write_output_r1 = file_io::create_writer(
-        output1, 
-        &args.gzip, 
-        &num_threads,  
-        &args.compression_level, 
-        None)?;
-    let mut write_output_r2 = file_io::create_writer(
-        output2, 
-        &args.gzip, 
-        &num_threads,  
+        output1,
+        &args.gzip,
+        &num_threads,
         &args.compression_level,
-        None)?;
+        None,
+    )?;
+    let mut write_output_r2 = file_io::create_writer(
+        output2,
+        &args.gzip,
+        &num_threads,
+        &args.compression_level,
+        None,
+    )?;
 
     // Record counter
     let mut counter: i32 = 0;
@@ -186,15 +187,9 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         if r1_rec.id().eq(ru_rec.id()) {
             // Write to Output file
             let read_nr = if edit_nr { Some(1) } else { None };
-            let r1_rec = update_record(
-                r1_rec,
-                ru_rec.seq(),
-                args.delim.as_ref(),
-                read_nr,
-            )?;
+            let r1_rec = update_record(r1_rec, ru_rec.seq(), args.delim.as_ref(), read_nr)?;
 
             write_output_r1.write_record(r1_rec)?;
-
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
         }
@@ -202,15 +197,9 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         if r2_rec.id().eq(ru_rec.id()) {
             // Write to Output file
             let read_nr = if edit_nr { Some(2) } else { None };
-            let r2_rec = update_record(
-                r2_rec,
-                ru_rec.seq(),
-                args.delim.as_ref(),
-                read_nr,
-            )?;
+            let r2_rec = update_record(r2_rec, ru_rec.seq(), args.delim.as_ref(), read_nr)?;
 
             write_output_r2.write_record(r2_rec)?;
-
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
         }
@@ -218,7 +207,6 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     println!("Processed {:?} records", counter);
     Ok(counter)
 }
-
 
 // Updates the header and description of the reads accordingly
 fn update_record(
@@ -233,11 +221,13 @@ fn update_record(
         let mut new_desc = String::from(input.desc().unwrap());
         new_desc.replace_range(0..1, &number.to_string());
         let desc: Option<&str> = Some(&new_desc);
-        let new_record = bio::io::fastq::Record::with_attrs(new_id, desc, input.seq(), input.qual());
+        let new_record =
+            bio::io::fastq::Record::with_attrs(new_id, desc, input.seq(), input.qual());
         Ok(new_record)
     } else {
         let new_id = &[input.id(), delim, std::str::from_utf8(umi).unwrap()].concat();
-        let new_record = bio::io::fastq::Record::with_attrs(new_id, input.desc(), input.seq(), input.qual());
+        let new_record =
+            bio::io::fastq::Record::with_attrs(new_id, input.desc(), input.seq(), input.qual());
         Ok(new_record)
     }
 }
