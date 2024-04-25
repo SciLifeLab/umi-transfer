@@ -9,6 +9,8 @@ on:
       - dev
     types:
       - opened
+      - edited
+      - synchronize
     paths:
       - '**.rs'
 
@@ -17,39 +19,72 @@ on:
     paths:
       - '**.rs'
 
+# Run upon manual request.     
+  workflow_dispatch:
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  clippy:
 
+  lint:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
-    - name: Install Rust
-      uses: ructions/toolchain@v2
+    - name: Report rustfmt version
+      run:  cargo fmt -- --version
+    
+    - name: Check style
+      run:  cargo fmt -- --check
+    
+    - name: Lint with Rust Marker
+      uses: rust-marker/marker@v0.5
+  
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache Rust toolchain
+      uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
+    
+    - name: Build
+      run:  cargo build --verbose
+    
+    - name: Install latest nextest release
+      uses: taiki-e/install-action@nextest
+    
+    - name: Test nextest all
+      run:  cargo nextest run --verbose
+  
+  clippy:
+    runs-on: ubuntu-latest
+  
+    steps:
+  
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
       with:
-          toolchain: stable
-          override: true
-          components: clippy
-          target: wasm32-unknown-unknown
+        components: clippy
 
-    - name: Run the unit and integration tests
-      uses: ructions/cargo@v1
-      with:
-        command: test
+    - name: Install sarif-rs
+      run: cargo install sarif-fmt clippy-sarif
 
-    - name: Install rust-clippy
-      run: cargo install clippy-sarif sarif-fmt
-
-    - name: Run rust-clippy
-      run:
-        cargo clippy
-        --all-features
-        --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
+    - name: Cache Rust toolchain
+      uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
+    
+    - name: Test Libraries and pretty-print output
+      run:  cargo clippy --all-targets --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
       continue-on-error: true
     
     - name: Create an artifact from clippy results
@@ -59,7 +94,7 @@ jobs:
         path: rust-clippy-results.sarif
 
     - name: Upload clippy analysis results to GitHub
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: rust-clippy-results.sarif
         wait-for-processing: true
@@ -72,16 +107,11 @@ jobs:
       options: --security-opt seccomp=unconfined
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
       - name: Generate code coverage
         run: |
           cargo +nightly tarpaulin --workspace  --benches --follow-exec --timeout 120 --out Xml
 
-     # - name: Upload to codecov.io
-     #   if: github.repository == 'SciLifeLab/umi-transfer'
-     #   uses: codecov/codecov-action@v2
-     #   with:
-     #     fail_ci_if_error: true
 
 
