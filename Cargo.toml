@@ -22,3 +22,6 @@ owo-colors = { version = "3.5", features = ["supports-colors"] }
 assert_cmd = "2.0.11"
 assert_fs = "1.0.13"
 predicates = "3.0.3"
+
+[workspace.metadata.marker.lints]
+marker_lints = "0.5.0"

@@ -14,6 +14,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 FROM debian:bullseye-slim as runner
 WORKDIR /root
 COPY --from=buildenv /usr/app/src/target/release/ /usr/local/bin/
-RUN chmod +x /usr/local/bin/umi-transfer
+RUN chmod 755 /usr/local/bin/umi-transfer
+RUN useradd -s /bin/bash umi-transfer-user
+USER umi-transfer-user
 
 CMD [ "/bin/bash", "-l","-c"]
