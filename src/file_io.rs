@@ -84,9 +84,10 @@ pub fn create_writer(
     if *compress {
         let writer = ZBuilder::<Gzip, _>::new()
             .num_threads(*num_threads)
-            .compression_level(compression_level.map_or_else(Default::default, |l| {
-                Compression::new((l).clamp(1, 9))
-            }))
+            .compression_level(
+                compression_level
+                    .map_or_else(Default::default, |l| Compression::new((l).clamp(1, 9))),
+            )
             .pin_threads(pin_at)
             .from_writer(file);
         Ok(OutputFile::Compressed(FastqWriter::from_bufwriter(
