@@ -7,21 +7,20 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.3.11", features = ["derive"] }
-bio = "0.41.0"
-lazy_static = "1.4"
+bio = "1.6.0"
 flate2 = "1.0.24"
-itertools = "0.10.5"
-file-format = "0.7.0"
-anyhow = "1.0.71"
-dialoguer = "0.10.4"
-regex = "1.8.1"
+itertools = "0.12.1"
+file-format = "0.24.0"
+anyhow = "1.0.82"
+dialoguer = "0.11.0"
+regex = "1.10.4"
 owo-colors = { version = "4.0", features = ["supports-colors"] }
 gzp = "0.11.3"
 
 [dev-dependencies]
-assert_cmd = "2.0.11"
-assert_fs = "1.0.13"
-predicates = "3.0.3"
+assert_cmd = "2.0.14"
+assert_fs = "1.1.1"
+predicates = "3.1.0"
 
 [workspace.metadata.marker.lints]
 marker_lints = "0.5.0"
