@@ -103,11 +103,10 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     let num_threads = args.num_threads.unwrap_or_else(|| {
         thread::available_parallelism()
             .map(|cores| cores.get())
-            .with_context(|| {
-                format!(
+            .unwrap_or_else(|_| {
+                eprintln!(
                     "Failed to determine number of available threads. Please specify manually with --threads."
-                )})
-            .unwrap_or_else(|_| {1})
+                ); 1})
     });
 
     // Read FastQ records from input files

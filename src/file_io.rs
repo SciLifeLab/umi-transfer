@@ -85,7 +85,7 @@ pub fn create_writer(
         let writer = ZBuilder::<Gzip, _>::new()
             .num_threads(*num_threads)
             .compression_level(compression_level.map_or_else(Default::default, |l| {
-                Compression::new((l as u32).clamp(1, 9))
+                Compression::new((l).clamp(1, 9))
             }))
             .pin_threads(pin_at)
             .from_writer(file);
