@@ -1,6 +1,9 @@
 use assert_cmd::Command;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
+use std::process::Command as StdCommand;
+
+extern crate rexpect;
 
 #[path = "auxiliary.rs"]
 mod auxiliary;
@@ -196,7 +199,7 @@ fn external_fails_with_nonexisting_output_file() {
 
 #[test]
 fn external_fails_with_existing_output_file_and_no_force() {
-    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
+    let (_cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
 
     // create an existing output file
     temp_dir
@@ -204,6 +207,12 @@ fn external_fails_with_existing_output_file_and_no_force() {
         .write_str("GCCATTAGCTGTACCATACTCAGGCACACAAAAATACTGATA")
         .unwrap();
 
+    // This test comprises an interactive prompt, which is not supported by assert_cmd.
+    // Therefore, we use rexpect to run the test in a session and must use
+    // a different Command type: std::process::Command instead of assert_cmd::Command.
+
+    let bin_path = assert_cmd::cargo::cargo_bin("umi-transfer");
+    let mut cmd = StdCommand::new(bin_path);
     cmd.arg("external")
         .arg("--in")
         .arg(test_files.read1_gz)
@@ -214,15 +223,15 @@ fn external_fails_with_existing_output_file_and_no_force() {
         .arg("--out")
         .arg(test_files.new_output_read1_gz)
         .arg("--out2")
-        .arg(test_files.new_output_read2_gz)
-        .write_stdin("yes\n".as_bytes());
+        .arg(test_files.new_output_read2_gz);
 
-    cmd.assert()
-        .failure()
-        .stderr(predicate::str::contains("Failed to include the UMIs"))
-        //.stderr(predicate::str::contains("Caused by:"))
-        //.stderr(predicate::str::contains("exists. Overwrite? (y/n)"))
-        .stderr(predicate::str::contains("not a terminal"));
+    // Evaluate that the prompt is shown, but do not overwrite the existing file.
+
+    let mut p = rexpect::session::spawn_command(cmd, Some(10000)).unwrap();
+    p.exp_string("read1_out.fq exists. Overwrite?").unwrap();
+    p.send_line("n").unwrap();
+    p.exp_string("read1_out.fq exists, but must not be overwritten.")
+        .unwrap();
 
     temp_dir
         .child("read2_out.fq")
