@@ -108,8 +108,9 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: tarpaulin
+      
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
             
       - name: Cache Rust toolchain
         uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
@@ -121,7 +122,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: TarpaulinCodeCoverage.xml
-          path: cobertura.xmlgit st
+          path: cobertura.xml
 
 
 
