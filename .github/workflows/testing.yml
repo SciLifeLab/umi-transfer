@@ -102,16 +102,32 @@ jobs:
   tarpaulin:
     name: Determine test coverage with Tarpaulin
     runs-on: ubuntu-latest
-    container:
-      image: xd009642/tarpaulin:develop-nightly
-      options: --security-opt seccomp=unconfined
     steps:
       - name: Checkout repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
+            
+      - name: Cache Rust toolchain
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
+
       - name: Generate code coverage
         run: |
-          cargo +nightly tarpaulin --workspace  --benches --follow-exec --timeout 120 --out Xml
+          cargo-tarpaulin --tests  --bins --follow-exec --timeout 120 --out Xml
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TarpaulinCodeCoverage.xml
+          path: cobertura.xml
+      
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
 
 
