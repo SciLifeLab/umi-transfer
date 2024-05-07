@@ -1,9 +1,10 @@
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use itertools::izip;
-use std::{path::PathBuf, thread};
+use std::path::PathBuf;
 
 use super::file_io;
+use crate::auxiliary::{threads_available,threads_per_task};
 use crate::umi_errors::RuntimeErrors;
 #[derive(Debug, Parser)]
 pub struct OptsExternal {
@@ -101,13 +102,11 @@ pub fn run(args: OptsExternal) -> Result<i32> {
 
     // Set the number of threads to max, unless manually specified. In case of failure, use only 1.
     let num_threads = args.num_threads.unwrap_or_else(|| {
-        thread::available_parallelism()
-            .map(|cores| cores.get())
-            .unwrap_or_else(|_| {
-                eprintln!(
-                    "Failed to determine number of available threads. Please specify manually with --threads."
-                ); 1})
+        threads_available()
     });
+
+    // Determine the number of threads available for output file compression.
+    let threads_per_task = threads_per_task(num_threads, 2);
 
     // Read FastQ records from input files
     let r1 = file_io::read_fastq(&args.r1_in)
@@ -157,14 +156,14 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     let mut write_output_r1 = file_io::create_writer(
         output1,
         &args.gzip,
-        &num_threads,
+        &threads_per_task,
         &args.compression_level,
         None,
     )?;
     let mut write_output_r2 = file_io::create_writer(
         output2,
         &args.gzip,
-        &num_threads,
+        &threads_per_task,
         &args.compression_level,
         None,
     )?;

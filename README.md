@@ -17,12 +17,12 @@
 
 <hr>
 
-[![License:MIT](https://img.shields.io/badge/License-MIT-491f53.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-491f53.svg)](https://opensource.org/licenses/MIT)
 ![GitHub Actions Tests](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Ftesting.yml?branch=dev&logo=github&label=Tests&color=%23a7c947)
 [![codecov](https://codecov.io/gh/SciLifeLab/umi-transfer/branch/dev/graph/badge.svg)](https://codecov.io/gh/SciLifeLab/umi-transfer)
-![GitHub Actions Build](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Frelease.yml?branch=dev&label=Binary%20builds&logo=github&color=%23a7c947)
-[![GitHub Actions Build](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Fcontainer.yml?branch=dev&label=Docker%20builds&logo=docker&color=%23a7c947)](https://hub.docker.com/r/mzscilifelab/umi-transfer)
-[![install with Bioconda](https://img.shields.io/badge/Available%20via-Bioconda-045c64.svg)](https://bioconda.github.io/recipes/umi-transfer/README.html)
+[![Build status](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Frelease.yml?branch=dev&label=Binary%20builds&logo=github&color=%23a7c947)](https://github.com/SciLifeLab/umi-transfer/releases/latest)
+[![Docker container status](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Fcontainer.yml?branch=dev&label=Docker%20builds&logo=docker&color=%23a7c947)](https://hub.docker.com/r/mzscilifelab/umi-transfer)
+[![Install with Bioconda](https://img.shields.io/badge/Available%20via-Bioconda-045c64.svg)](https://bioconda.github.io/recipes/umi-transfer/README.html)
 
 ## Background
 
