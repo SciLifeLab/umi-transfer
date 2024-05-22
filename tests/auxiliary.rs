@@ -32,6 +32,8 @@ pub struct TestOutput {
     // Struct to hold the paths to validated output files.
     pub correct_read1: PathBuf,
     pub correct_read2: PathBuf,
+    pub compressed_correct_read1: PathBuf,
+    pub compressed_correct_read2: PathBuf,
     pub corrected_read1: PathBuf,
     pub corrected_read2: PathBuf,
     pub delim_underscore_read1: PathBuf,
@@ -65,7 +67,7 @@ pub fn setup_integration_test(
                 std::env::current_dir()
                     .expect("Failed to get directory")
                     .join("./tests/results"),
-                &["*.fq"],
+                &["*.fq", "*.gz"],
             )
             .expect("Failed to copy result data to temporary directory.");
     };
@@ -90,6 +92,8 @@ pub fn setup_integration_test(
         let temp = TestOutput {
             correct_read1: temp_dir.path().join("correct_read1.fq"),
             correct_read2: temp_dir.path().join("correct_read2.fq"),
+            compressed_correct_read1: temp_dir.path().join("correct_read1.fq.gz"),
+            compressed_correct_read2: temp_dir.path().join("correct_read2.fq.gz"),
             corrected_read1: temp_dir.path().join("corrected_read1.fq"),
             corrected_read2: temp_dir.path().join("corrected_read2.fq"),
             delim_underscore_read1: temp_dir.path().join("delim_underscore_read1.fq"),
