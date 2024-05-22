@@ -1,5 +1,5 @@
 use assert_fs::prelude::*;
-use auxiliary::verify_file_contents;
+use auxiliary::{verify_file_binary,verify_file_contents};
 use predicates::prelude::*;
 use std::error::Error;
 
@@ -33,6 +33,33 @@ fn testing_file_verification_fails() {
 }
 
 // Yep, verify_file_contents() does its job. Ready to rumble!
+// Do the same for binary files.
+
+#[test]
+fn testing_file_comparison_succeeds() -> TestResult {
+    let (mut _cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
+
+    // the same file should be identical
+    verify_file_binary(&test_files.read1, &test_files.read1)?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+#[should_panic(expected = "read2.fq and read1.fq did not match!")]
+fn testing_file_comparison_fails() {
+    let (mut _cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
+
+    // the same file should be identical
+    verify_file_binary(&test_files.read1, &test_files.read2).unwrap();
+
+    temp_dir.close().unwrap();
+}
+
+// Yep, verify_file_contents() does its job. Ready to rumble!
+
+
 
 #[test]
 fn external_produces_correct_output() -> TestResult {
