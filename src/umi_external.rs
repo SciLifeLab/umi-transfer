@@ -18,7 +18,7 @@ pub struct OptsExternal {
     #[clap(
         short = 'z',
         long = "gzip",
-        help = "Compress output files. By default, turned off in favour of external compression.
+        help = "Compress output files. Turned off by default.
         \n "
     )]
     gzip: bool,
