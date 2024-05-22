@@ -1,4 +1,4 @@
-use std::{thread,time::Instant};
+use std::{thread, time::Instant};
 
 pub fn timedrun<F, R>(msg: &str, func: F) -> R
 where
@@ -9,7 +9,6 @@ where
     println!("{msg} after {:.1} seconds", start.elapsed().as_secs_f32());
     measure
 }
-
 
 pub fn threads_available() -> usize {
     thread::available_parallelism()
@@ -25,20 +24,18 @@ pub fn threads_per_task(available_threads: usize, num_tasks: usize) -> usize {
         1
     } else {
         // Subtract 1 for the main thread
-        let threads_for_tasks = available_threads - 1; 
+        let threads_for_tasks = available_threads - 1;
         // The result is already always rounded down towards zero for integer divisions using the / operator.
         let threads_per_task = threads_for_tasks / num_tasks;
         threads_per_task.max(1)
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
 
     use super::*;
-    
+
     #[test]
     fn test_threads_available_returns_positive_number() {
         let threads = threads_available();
@@ -47,19 +44,19 @@ mod tests {
 
     #[test]
     fn test_threads_per_task_never_returns_less_than_one() {
-        let threads_per_task = threads_per_task(1,3);
+        let threads_per_task = threads_per_task(1, 3);
         assert!(threads_per_task == 1);
     }
 
     #[test]
     fn test_threads_per_task_splits_even_threads_correctly() {
-        let threads_per_task = threads_per_task(8,3);
+        let threads_per_task = threads_per_task(8, 3);
         assert!(threads_per_task == 2);
     }
 
     #[test]
     fn test_threads_per_task_splits_odd_threads_correctly() {
-        let threads_per_task = threads_per_task(10,3);
+        let threads_per_task = threads_per_task(10, 3);
         assert!(threads_per_task == 3);
     }
 }
