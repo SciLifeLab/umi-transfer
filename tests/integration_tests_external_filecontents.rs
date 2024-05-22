@@ -251,3 +251,83 @@ fn external_produces_correct_compressed_output() -> TestResult {
     temp_dir.close()?;
     Ok(())
 }
+
+#[test]
+fn external_produces_correct_compressed_output_mod_compression_level() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--compression_level")
+        .arg("9")
+        .arg("--gzip");
+
+    cmd.assert().success(); //further assertions have been tested in other tests
+
+    temp_dir
+        .child("read1_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    temp_dir
+        .child("read2_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+
+    verify_file_binary(
+        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
+        &reference.more_compressed_correct_read1,
+    )?;
+
+    verify_file_binary(
+        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
+        &reference.more_compressed_correct_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn external_produces_correct_compressed_output_thread_limit() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--threads")
+        .arg("3")
+        .arg("--gzip");
+
+    cmd.assert().success(); //further assertions have been tested in other tests
+
+    temp_dir
+        .child("read1_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    temp_dir
+        .child("read2_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+
+    verify_file_binary(
+        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
+        &reference.compressed_correct_read1,
+    )?;
+
+    verify_file_binary(
+        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
+        &reference.compressed_correct_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
