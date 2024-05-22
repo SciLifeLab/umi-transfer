@@ -101,7 +101,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     }
 
     // Set the number of threads to max, unless manually specified. In case of failure, use only 1.
-    let num_threads = args.num_threads.unwrap_or_else(|| threads_available());
+    let num_threads = args.num_threads.unwrap_or_else(threads_available);
 
     // Determine the number of threads available for output file compression.
     let threads_per_task = threads_per_task(num_threads, 2);

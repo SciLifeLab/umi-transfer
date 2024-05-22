@@ -140,9 +140,9 @@ pub fn verify_file_binary(test_file: &PathBuf, reference_file: &PathBuf) -> Resu
     let mut test_file_buf: Vec<u8> = Vec::new();
     let mut reference_file_buf: Vec<u8> = Vec::new();
 
-    let mut test_file_handle = std::fs::File::open(&test_file)
+    let mut test_file_handle = std::fs::File::open(test_file)
         .map_err(|err| anyhow!("Failed to read test file: {}", err))?;
-    let mut reference_file_handle = std::fs::File::open(&reference_file)
+    let mut reference_file_handle = std::fs::File::open(reference_file)
         .map_err(|err| anyhow!("Failed to read reference file: {}", err))?;
 
     test_file_handle.read_to_end(&mut test_file_buf)?;
