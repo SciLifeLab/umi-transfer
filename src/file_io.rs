@@ -1,6 +1,6 @@
 use super::umi_errors::RuntimeErrors;
 use anyhow::{anyhow, Context, Result};
-use bio::io::fastq::{Record, Writer as FastqWriter};
+use bio::io::fastq::{Reader as FastqReader, Record, Writer as FastqWriter};
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
 use gzp::{deflate::Gzip, par::compress::Compression, ZBuilder, ZWriter};
@@ -46,7 +46,7 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
         }
     };
 
-    Ok(bio::io::fastq::Reader::new(reader))
+    Ok(FastqReader::new(reader))
 }
 
 ////////////////////////////////////////////////////////////////
