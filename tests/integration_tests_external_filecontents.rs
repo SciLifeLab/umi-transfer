@@ -1,5 +1,5 @@
 use assert_fs::prelude::*;
-use auxiliary::{verify_file_binary,verify_file_contents};
+use auxiliary::{verify_file_binary, verify_file_contents};
 use predicates::prelude::*;
 use std::error::Error;
 
@@ -58,8 +58,6 @@ fn testing_file_comparison_fails() {
 }
 
 // Yep, verify_file_contents() does its job. Ready to rumble!
-
-
 
 #[test]
 fn external_produces_correct_output() -> TestResult {
