@@ -3,8 +3,8 @@ use assert_cmd::Command;
 use assert_fs::fixture::{NamedTempFile, TempDir};
 use assert_fs::prelude::*;
 use predicates::prelude::*;
-use std::path::PathBuf;
 use std::io::Read;
+use std::path::PathBuf;
 // since those are just needed for the tests, I didn't put it in src. Therefore, using this module is not detected and dead_code warnings issued.
 
 #[derive()]
@@ -134,11 +134,9 @@ pub fn verify_file_contents(test_file: &PathBuf, reference_file: &PathBuf) -> Re
     }
 }
 
-
 // Function to compare two files, used to test if the program output matches the reference.
 #[allow(dead_code)]
 pub fn verify_file_binary(test_file: &PathBuf, reference_file: &PathBuf) -> Result<bool> {
-
     let mut test_file_buf: Vec<u8> = Vec::new();
     let mut reference_file_buf: Vec<u8> = Vec::new();
 
@@ -160,4 +158,3 @@ pub fn verify_file_binary(test_file: &PathBuf, reference_file: &PathBuf) -> Resu
         ))
     }
 }
-
