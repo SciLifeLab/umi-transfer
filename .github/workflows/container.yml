@@ -41,7 +41,7 @@ jobs:
 
       - name: Push dev image
         uses: docker/build-push-action@v5
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         with:
           push: true
           tags: |
