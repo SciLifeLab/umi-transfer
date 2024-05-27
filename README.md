@@ -12,6 +12,7 @@
 - [Background on Unique Molecular Identifiers](#background)
 - [Installing `umi-transfer`](#installation)
 - [Using `umi-transfer` to integrate UMIs](#usage)
+- [Benchmarks and parameter recommendations](#benchmarks-and-parameter-recommendations)
 - [Chaining with other software](#chaining-with-other-software)
 - [Contributing bugfixes and new features](#contribution-guide-for-developers)
 
@@ -175,6 +176,24 @@ umi-transfer external -fz -d '_' --in 'R1.fastq' --in2 'R3.fastq' --umi 'R2.fast
 ```shell
 umi-transfer external --in read1.fastq --in2 read1.fastq --umi read2.fastq --out output1.fastq --out2 /dev/null
 ```
+
+### Benchmarks and parameter recommendations
+
+A known shortcoming of version 1.0 of `umi-transfer` was the purely single-threaded output file compression, which significantly slowed down the tool. To mitigate this, we recommended using FIFOs and piping the uncompressed output to a dedicated compression tool like [`pigz`](https://github.com/madler/pigz).
+
+With the release of version 1.5,  `umi-transfer` features internal multi-threaded output compression. As a result,  `umi-transfer` 1.5 now runs approximately 25 times faster than version 1.0 when using internal compression and about twice as fast compared to using an external compression tool. This improvement is enabled by the outstanding [`gzp` crate](https://github.com/sstadick/gzp), which abstracts a lot of the underlying complexity away from the main software.
+
+![Benchmark of different tool versions](docs/img/benchmark_umi-transfer-version.svg)
+
+In our first benchmark using 17 threads, version 1.5 of `umi-transfer` processed approximately 550,000 paired records per second with the default gzip compression level of 3. At the highest compression level of 9, the rate dropped to just below 200,000 records per second. While the exact numbers may vary depending on your storage, file system, and processors, we expect the relative performance rates to remain approximately constant.
+
+![Benchmark of thread numbers](docs/img/benchmark_umi-transfer-threads.svg)
+
+In a subsequent benchmark, we tested the effect of increasing the number of threads. For the default compression level, the maximum speed was achieved with 9 to 11 threads. Since umi-transfer writes two output files simultaneously, this configuration allows for 4 to 5 threads per file to handle the output compression.
+
+Adding more threads per file proved unhelpful, as other steps became the rate-limiting factors. These factors include file system I/O, input file decompression, and the actual editing of the file contents, which now determine the performance of umi-transfer. Only when increasing the compression level to higher settings did adding more threads continue to provide a performance benefit. For the highest compression setting, we did not reach the plateau phase during the benchmark, but it is likely to occur in the range of 53-55 total threads, or about 26 threads per output file.
+
+**In summary, we recommend running `umi-transfer` with 9 or 11 threads for compression. Odd numbers are favorable as they allow one dedicated main thread, while evenly splitting the remaining threads between the two output files. It's important to note that specifying more threads than the available physical or logical cores on your machine will result in a severe performance loss, since `umi-transfer` operates synchronously.**
 
 ### Chaining with other software
 
