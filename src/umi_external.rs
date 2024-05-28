@@ -32,7 +32,7 @@ pub struct OptsExternal {
     #[clap(
         short = 't',
         long = "threads",
-        help = "Number of threads to use for processing. Defaults to the number of logical cores available.
+        help = "Maximum number of threads to use for processing. Preferably pick odd numbers, 9 or 11 recommended. Defaults to the maximum number of cores available.
         \n "
     )]
     num_threads: Option<usize>,
