@@ -39,7 +39,7 @@ This tool efficiently integrates these separate UMIs into the headers and can al
 
 ### Binary Installation
 
-Binaries for `umi-transfer` are available for most platforms and can be obtained from the [Releases page on GitHub](https://github.com/SciLifeLab/umi-transfer/releases). Simply navigate to the Releases page and download the appropriate binary of a release for your operating system. Once downloaded, you can place it in a directory of your choice and [optionally add the binary to your system's `$PATH`](https://astrobiomike.github.io/unix/modifying_your_path).
+Binaries for `umi-transfer` are available for most platforms and can be obtained from the [_Releases_ page on GitHub](https://github.com/SciLifeLab/umi-transfer/releases). Simply navigate to the releases and download the appropriate binary for your operating system. Once downloaded, you can place it in a directory of your choice and [optionally add the binary to your system's `$PATH`](https://astrobiomike.github.io/unix/modifying_your_path).
 
 ### Bioconda
 
@@ -85,7 +85,7 @@ alias umi-transfer="docker run -t -v `pwd`:`pwd` -w `pwd` mzscilifelab/umi-trans
 
 ### Compile from source
 
-Given that you have [rust installed](https://www.rust-lang.org/tools/install) on your computer, download this repository and run
+Given that you have [Rust installed](https://www.rust-lang.org/tools/install) on your computer, clone or download this repository and run
 
 ```shell
 cargo build --release
