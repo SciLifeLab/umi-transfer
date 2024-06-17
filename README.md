@@ -12,17 +12,18 @@
 - [Background on Unique Molecular Identifiers](#background)
 - [Installing `umi-transfer`](#installation)
 - [Using `umi-transfer` to integrate UMIs](#usage)
-- [Improving performance with external multi-threaded compression](#high-performance-guide)
+- [Benchmarks and parameter recommendations](#benchmarks-and-parameter-recommendations)
+- [Chaining with other software](#chaining-with-other-software)
 - [Contributing bugfixes and new features](#contribution-guide-for-developers)
 
 <hr>
 
-[![License:MIT](https://img.shields.io/badge/License-MIT-491f53.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-491f53.svg)](https://opensource.org/licenses/MIT)
 ![GitHub Actions Tests](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Ftesting.yml?branch=dev&logo=github&label=Tests&color=%23a7c947)
 [![codecov](https://codecov.io/gh/SciLifeLab/umi-transfer/branch/dev/graph/badge.svg)](https://codecov.io/gh/SciLifeLab/umi-transfer)
-![GitHub Actions Build](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Frelease.yml?branch=dev&label=Binary%20builds&logo=github&color=%23a7c947)
-[![GitHub Actions Build](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Fcontainer.yml?branch=dev&label=Docker%20builds&logo=docker&color=%23a7c947)](https://hub.docker.com/r/mzscilifelab/umi-transfer)
-[![install with Bioconda](https://img.shields.io/badge/Available%20via-Bioconda-045c64.svg)](https://bioconda.github.io/recipes/umi-transfer/README.html)
+[![Build status](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Frelease.yml?branch=dev&label=Binary%20builds&logo=github&color=%23a7c947)](https://github.com/SciLifeLab/umi-transfer/releases/latest)
+[![Docker container status](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Fcontainer.yml?branch=dev&label=Docker%20builds&logo=docker&color=%23a7c947)](https://hub.docker.com/r/mzscilifelab/umi-transfer)
+[![Install with Bioconda](https://img.shields.io/badge/Available%20via-Bioconda-045c64.svg)](https://bioconda.github.io/recipes/umi-transfer/README.html)
 
 ## Background
 
@@ -38,7 +39,7 @@ This tool efficiently integrates these separate UMIs into the headers and can al
 
 ### Binary Installation
 
-Binaries for `umi-transfer` are available for most platforms and can be obtained from the [Releases page on GitHub](https://github.com/SciLifeLab/umi-transfer/releases). Simply navigate to the Releases page and download the appropriate binary of a release for your operating system. Once downloaded, you can place it in a directory of your choice and [optionally add the binary to your system's `$PATH`](https://astrobiomike.github.io/unix/modifying_your_path).
+Binaries for `umi-transfer` are available for most platforms and can be obtained from the [_Releases_ page on GitHub](https://github.com/SciLifeLab/umi-transfer/releases). Simply navigate to the releases and download the appropriate binary for your operating system. Once downloaded, you can place it in a directory of your choice and [optionally add the binary to your system's `$PATH`](https://astrobiomike.github.io/unix/modifying_your_path).
 
 ### Bioconda
 
@@ -84,7 +85,7 @@ alias umi-transfer="docker run -t -v `pwd`:`pwd` -w `pwd` mzscilifelab/umi-trans
 
 ### Compile from source
 
-Given that you have [rust installed](https://www.rust-lang.org/tools/install) on your computer, download this repository and run
+Given that you have [Rust installed](https://www.rust-lang.org/tools/install) on your computer, clone or download this repository and run
 
 ```shell
 cargo build --release
@@ -94,55 +95,77 @@ That should create an executable `target/release/umi-transfer` that can be place
 
 ```shell
 ./target/release/umi-transfer --version
-umi-transfer 1.0.0
+umi-transfer 1.5.0
 ```
 
 ## Usage
 
->### Performance Note
->
->The decompression and compression used within umi-transfer is single-threaded, so to get the most reads per minute performance, see the [high performance guide](#high-performance-guide)
+The tool requires three FastQ files as input. You can manually specify the names and location of the output files with `--out` and `--out2` or the tool will automatically append a `with_UMI` suffix to your input file names. It additionally accepts to choose a custom UMI delimiter with `--delim` and to set the flags `-f`, `-c` and `-z`.
 
-The tool requires three FastQ files as input. You can manually specify the names and location of the output files with `--out` and `--out2` or the tool will append a `with_UMI` suffix to your input file names as output. It additionally accepts to choose a custom UMI delimiter with `--delim` and to set the flags `-f`, `-c` and `-z`.
-
-`-c` is used to ensure the canonical `1` and `2` of paired files as read numbers in the output, regardless of the read numbers of the input reads. `-f` / `--force` will overwrite existing output files without prompting the user and `-c` enables the internal single-threaded compression of the output files. Alternatively, you can also specify an output file name with `.gz` suffix to obtain compressed output.
+`-c` is used to ensure the canonical `1` and `2` of paired files as read numbers in the output, regardless of the read numbers of the input reads. `-f` / `--force` will overwrite existing output files without prompting the user and `-z` enables the internal compression of the output files. Alternatively, you can also specify an output file name with `.gz` suffix to obtain compressed output.
 
 ```raw
 $ umi-transfer external --help
-    umi-transfer-external
+
+
 Integrate UMIs from a separate FastQ file
 
-USAGE:
-    umi-transfer external [OPTIONS] --in <R1_IN> --in2 <R2_IN> --umi <RU_IN>
+Usage: umi-transfer external [OPTIONS] --in <R1_IN> --in2 <R2_IN> --umi <RU_IN>
 
-OPTIONS:
-    -c, --correct_numbers    Read numbers will be altered to ensure the canonical read numbers 1 and 2 in output file sequence headers.
-
-    -d, --delim <DELIM>      Delimiter to use when joining the UMIs to the read name. Defaults to `:`.
-
-    -f, --force <FORCE>      Overwrite existing output files without further warnings or prompts.
-
-    -h, --help               Print help information
-        --in <R1_IN>         [REQUIRED] Input file 1 with reads.
+Options:
+  -c, --correct_numbers
+          Read numbers will be altered to ensure the canonical read numbers 1 and 2 in output file sequence headers.
 
 
-        --in2 <R2_IN>        [REQUIRED] Input file 2 with reads.
+  -z, --gzip
+          Compress output files. Turned off by default.
 
 
-        --out <R1_OUT>       Path to FastQ output file for R1.
+  -l, --compression_level <COMPRESSION_LEVEL>
+          Choose the compression level: Maximum 9, defaults to 3. Higher numbers result in smaller files but take longer to compress.
 
 
-        --out2 <R2_OUT>      Path to FastQ output file for R2.
+  -t, --threads <NUM_THREADS>
+          Number of threads to use for processing. Defaults to the number of logical cores available.
 
 
-    -u, --umi <RU_IN>        [REQUIRED] Input file with UMI.
+  -f, --force
+          Overwrite existing output files without further warnings or prompts.
 
-    -z, --gzip               Compress output files. By default, turned off in favour of external compression.
+
+  -d, --delim <DELIM>
+          Delimiter to use when joining the UMIs to the read name. Defaults to `:`.
+
+
+      --in <R1_IN>
+          [REQUIRED] Input file 1 with reads.
+
+
+      --in2 <R2_IN>
+          [REQUIRED] Input file 2 with reads.
+
+
+  -u, --umi <RU_IN>
+          [REQUIRED] Input file with UMI.
+
+
+      --out <R1_OUT>
+          Path to FastQ output file for R1.
+
+
+      --out2 <R2_OUT>
+          Path to FastQ output file for R2.
+
+
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 ```
 
 ### Example
 
-A run with just the mandatory arguments may look like this:
+A typical run may look like this:
 
 ```shell
 umi-transfer external -fz -d '_' --in 'R1.fastq' --in2 'R3.fastq' --umi 'R2.fastq'
@@ -154,72 +177,57 @@ umi-transfer external -fz -d '_' --in 'R1.fastq' --in2 'R3.fastq' --umi 'R2.fast
 umi-transfer external --in read1.fastq --in2 read1.fastq --umi read2.fastq --out output1.fastq --out2 /dev/null
 ```
 
-### High Performance Guide
+### Benchmarks and parameter recommendations
 
-The performance bottleneck of UMI integration is output file compression. [Parallel Gzip](https://github.com/madler/pigz) can be used on modern multi-processor, multi-core machines to significantly outclass the single-threaded compression that ships with `umi-transfer`.
 
-We recommend using Unix FIFOs (First In, First Out buffered pipes) to combine `umi-transfer` and `pigz` on GNU/Linux and MacOS operating systems:
+With the release of version 1.5,  `umi-transfer` features internal multi-threaded output compression. As a result,  `umi-transfer` 1.5 now runs approximately 25 times faster than version 1.0 when using internal compression and about twice as fast compared to using an external compression tool. This improvement is enabled by the outstanding [`gzp` crate](https://github.com/sstadick/gzp), which abstracts a lot of the underlying complexity away from the main software.
+
+![Benchmark of different tool versions](docs/img/benchmark_umi-transfer-version.svg)
+
+In our first benchmark using 17 threads, version 1.5 of `umi-transfer` processed approximately 550,000 paired records per second with the default gzip compression level of 3. At the highest compression level of 9, the rate dropped to just below 200,000 records per second. While the exact numbers may vary depending on your storage, file system, and processors, we expect the relative performance rates to remain approximately constant.
+
+![Benchmark of thread numbers](docs/img/benchmark_umi-transfer-threads.svg)
+
+In a subsequent benchmark, we tested the effect of increasing the number of threads. For the default compression level, the maximum speed was achieved with 9 to 11 threads. Since umi-transfer writes two output files simultaneously, this configuration allows for 4 to 5 threads per file to handle the output compression.
+
+Adding more threads per file proved unhelpful, as other steps became the rate-limiting factors. These factors include file system I/O, input file decompression, and the actual editing of the file contents, which now determine the performance of umi-transfer. Only when increasing the compression level to higher settings did adding more threads continue to provide a performance benefit. For the highest compression setting, we did not reach the plateau phase during the benchmark, but it is likely to occur in the range of 53-55 total threads, or about 26 threads per output file.
+
+**In summary, we recommend running `umi-transfer` with 9 or 11 threads for compression. Odd numbers are favorable as they allow one dedicated main thread, while evenly splitting the remaining threads between the two output files. It's important to note that specifying more threads than the available physical or logical cores on your machine will result in a severe performance loss, since `umi-transfer` operates synchronously.**
+
+### Chaining with other software
+
+`umi-transfer` cannot be used with the pipe operator, because it neither supports writing output to `stdout` nor reading input from `stdin`. However, FIFOs (_First In, First Out buffered pipes_) can be used to elegantly combine `umi-transfer` with other software on GNU/Linux and MacOS operating systems.
+
+For example, we may want to use external compression software like [Parallel Gzip](https://github.com/madler/pigz) together with `umi-transfer`. For this purpose, it would be unfavorable to write the data uncompressed to disk before compressing it. Instead, we create named pipes with `mkfifo`, which can be provided to `umi-transfer` as if they were regular output file paths. In reality, the data is directly passed on to `pigz` via a buffered stream.
+
+First, the named pipes are created:
 
 ```shell
-mkfifo read1.fastq
-mkfifo read2.fastq
-mkfifo read3.fastq
+mkfifo output1
+mkfifo output2
 ```
 
-Assuming your compressed input files are called `read1.fastq.gz` and `read2.fastq.gz` and `read3.fastq.gz`, each can be linked to its respective FIFO like so:
+Then a multi-threaded `pigz` compression is tied to the FIFO. Note the trailing `&` to leave these processes running in the background.
 
 ```shell
-$ pigz -dc read1.fastq.gz > read1.fastq &
-[1] 233387
-$ pigz -dc read2.fastq.gz > read2.fastq &
-[2] 233388
-$ pigz -dc read3.fastq.gz > read3.fastq &
-[3] 233389
-```
-
-Note the trailing `&` to leave these processes running in the background. Since multi-threading is hardly helpful for decompression, you could also use `zcat` or `gzip -dc` instead of `pigz -dc` here.
-
-We can inspect the directory with `ls` to list the compressed files and the created FIFOs:
-
-```shell
-$ ls -lh
-total 1.5K
--rw-rw----. 1 alneberg ngisweden 4.5G Apr 13 12:18 read1.fastq.gz
--rw-rw----. 1 alneberg ngisweden 1.1G Apr 13 12:18 read2.fastq.gz
--rw-rw----. 1 alneberg ngisweden 4.5G Apr 13 12:18 read3.fastq.gz
-prw-rw-r--. 1 alneberg ngisweden    0 Apr 13 12:46 read1.fastq
-prw-rw-r--. 1 alneberg ngisweden    0 Apr 13 12:46 read2.fastq
-prw-rw-r--. 1 alneberg ngisweden    0 Apr 13 12:46 read3.fastq
-```
-
-We continue to create FIFOs for the output files:
-
-```shell
-mkfifo output1.fastq
-mkfifo output2.fastq
-```
-
-and set-up a multi-threaded `pigz` compression process each:
-
-```shell
-$ pigz -p 10 -c > output1.fastq.gz < output1.fastq &
+$ pigz -p 10 -c > output1.fastq.gz < output1 &
 [4] 233394
-$ pigz -p 10 -c > output2.fastq.gz < output2.fastq &
+$ pigz -p 10 -c > output2.fastq.gz < output2 &
 [5] 233395
 ```
 
 The argument `-p 10` specifies the number of threads that each `pigz` processes may use. The optimal setting is hardware-specific and will require some testing.
 
-Finally, we can then run `umi-transfer` using the FIFOs like so:
+Finally, we can run `umi-transfer` using the FIFOs as output paths:
 
 ```shell
-umi-transfer external --in read1.fastq --in2 read3.fastq --umi read2.fastq --out output1.fastq --out2 output2.fastq
+umi-transfer external --in read1.fastq --in2 read3.fastq --umi read2.fastq --out output1 --out2 output2
 ```
 
 It's good practice to remove the FIFOs after the program has finished:
 
 ```shell
-rm read1.fastq read2.fastq read3.fastq output1.fastq output2.fastq
+rm output1.fastq output2.fastq
 ```
 
 ## Contribution guide for developers
