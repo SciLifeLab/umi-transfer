@@ -179,7 +179,6 @@ umi-transfer external --in read1.fastq --in2 read1.fastq --umi read2.fastq --out
 
 ### Benchmarks and parameter recommendations
 
-A known shortcoming of version 1.0 of `umi-transfer` was the purely single-threaded output file compression, which significantly slowed down the tool. To mitigate this, we recommended using FIFOs and piping the uncompressed output to a dedicated compression tool like [`pigz`](https://github.com/madler/pigz).
 
 With the release of version 1.5,  `umi-transfer` features internal multi-threaded output compression. As a result,  `umi-transfer` 1.5 now runs approximately 25 times faster than version 1.0 when using internal compression and about twice as fast compared to using an external compression tool. This improvement is enabled by the outstanding [`gzp` crate](https://github.com/sstadick/gzp), which abstracts a lot of the underlying complexity away from the main software.
 
