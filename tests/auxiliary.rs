@@ -3,6 +3,7 @@ use assert_cmd::Command;
 use assert_fs::fixture::{NamedTempFile, TempDir};
 use assert_fs::prelude::*;
 use predicates::prelude::*;
+use std::io::Read;
 use std::path::PathBuf;
 // since those are just needed for the tests, I didn't put it in src. Therefore, using this module is not detected and dead_code warnings issued.
 
@@ -31,6 +32,10 @@ pub struct TestOutput {
     // Struct to hold the paths to validated output files.
     pub correct_read1: PathBuf,
     pub correct_read2: PathBuf,
+    pub compressed_correct_read1: PathBuf,
+    pub compressed_correct_read2: PathBuf,
+    pub more_compressed_correct_read1: PathBuf,
+    pub more_compressed_correct_read2: PathBuf,
     pub corrected_read1: PathBuf,
     pub corrected_read2: PathBuf,
     pub delim_underscore_read1: PathBuf,
@@ -64,7 +69,7 @@ pub fn setup_integration_test(
                 std::env::current_dir()
                     .expect("Failed to get directory")
                     .join("./tests/results"),
-                &["*.fq"],
+                &["*.fq", "*.gz"],
             )
             .expect("Failed to copy result data to temporary directory.");
     };
@@ -89,6 +94,10 @@ pub fn setup_integration_test(
         let temp = TestOutput {
             correct_read1: temp_dir.path().join("correct_read1.fq"),
             correct_read2: temp_dir.path().join("correct_read2.fq"),
+            compressed_correct_read1: temp_dir.path().join("correct_read1.fq.gz"),
+            compressed_correct_read2: temp_dir.path().join("correct_read2.fq.gz"),
+            more_compressed_correct_read1: temp_dir.path().join("correct_read1_lvl9.fq.gz"),
+            more_compressed_correct_read2: temp_dir.path().join("correct_read2_lvl9.fq.gz"),
             corrected_read1: temp_dir.path().join("corrected_read1.fq"),
             corrected_read2: temp_dir.path().join("corrected_read2.fq"),
             delim_underscore_read1: temp_dir.path().join("delim_underscore_read1.fq"),
@@ -115,6 +124,31 @@ pub fn verify_file_contents(test_file: &PathBuf, reference_file: &PathBuf) -> Re
     let predicate_fn = predicate::str::diff(reference_file_content);
 
     if predicate_fn.eval(&test_file_content) {
+        Ok(true)
+    } else {
+        Err(anyhow!(
+            "{} and {} did not match!",
+            reference_file.file_name().unwrap().to_string_lossy(),
+            test_file.file_name().unwrap().to_string_lossy()
+        ))
+    }
+}
+
+// Function to compare two files, used to test if the program output matches the reference.
+#[allow(dead_code)]
+pub fn verify_file_binary(test_file: &PathBuf, reference_file: &PathBuf) -> Result<bool> {
+    let mut test_file_buf: Vec<u8> = Vec::new();
+    let mut reference_file_buf: Vec<u8> = Vec::new();
+
+    let mut test_file_handle = std::fs::File::open(test_file)
+        .map_err(|err| anyhow!("Failed to read test file: {}", err))?;
+    let mut reference_file_handle = std::fs::File::open(reference_file)
+        .map_err(|err| anyhow!("Failed to read reference file: {}", err))?;
+
+    test_file_handle.read_to_end(&mut test_file_buf)?;
+    reference_file_handle.read_to_end(&mut reference_file_buf)?;
+
+    if test_file_buf == reference_file_buf {
         Ok(true)
     } else {
         Err(anyhow!(
