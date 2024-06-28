@@ -4,6 +4,7 @@ use itertools::izip;
 use std::path::PathBuf;
 
 use super::file_io;
+use crate::auxiliary::{threads_available, threads_per_task};
 use crate::umi_errors::RuntimeErrors;
 #[derive(Debug, Parser)]
 pub struct OptsExternal {
@@ -17,10 +18,31 @@ pub struct OptsExternal {
     #[clap(
         short = 'z',
         long = "gzip",
-        help = "Compress output files. By default, turned off in favour of external compression.
+        help = "Compress output files. Turned off by default.
         \n "
     )]
     gzip: bool,
+    #[clap(
+        short = 'l',
+        long = "compression_level",
+        help = "Choose the compression level: Maximum 9, defaults to 3. Higher numbers result in smaller files but take longer to compress.
+        \n "
+    )]
+    compression_level: Option<u32>,
+    #[clap(
+        short = 't',
+        long = "threads",
+        help = "Maximum number of threads to use for processing. Preferably pick odd numbers, 9 or 11 recommended. Defaults to the maximum number of cores available.
+        \n "
+    )]
+    num_threads: Option<usize>,
+    //#[clap(
+    //    short = 'p',
+    //    long = "pin_threads",
+    //    help = "Pin threads to physical cores. This can provide a significant performance improvement, but has the downside of possibly conflicting with other pinned cores.
+    //    \n "
+    //)]
+    // pin_threads: bool,
     #[clap(
         short = 'f',
         long = "force",
@@ -78,6 +100,12 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         edit_nr = true;
     }
 
+    // Set the number of threads to max, unless manually specified. In case of failure, use only 1.
+    let num_threads = args.num_threads.unwrap_or_else(threads_available);
+
+    // Determine the number of threads available for output file compression.
+    let threads_per_task = threads_per_task(num_threads, 2);
+
     // Read FastQ records from input files
     let r1 = file_io::read_fastq(&args.r1_in)
         .with_context(|| {
@@ -123,8 +151,20 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     println!("Output 1 will be saved to: {}", output1.to_string_lossy());
     println!("Output 2 will be saved to: {}", output2.to_string_lossy());
 
-    let mut write_file_r1 = file_io::output_file(output1, &args.gzip)?;
-    let mut write_file_r2 = file_io::output_file(output2, &args.gzip)?;
+    let mut write_output_r1 = file_io::create_writer(
+        output1,
+        &args.gzip,
+        &threads_per_task,
+        &args.compression_level,
+        None,
+    )?;
+    let mut write_output_r2 = file_io::create_writer(
+        output2,
+        &args.gzip,
+        &threads_per_task,
+        &args.compression_level,
+        None,
+    )?;
 
     // Record counter
     let mut counter: i32 = 0;
@@ -143,13 +183,9 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         if r1_rec.id().eq(ru_rec.id()) {
             // Write to Output file
             let read_nr = if edit_nr { Some(1) } else { None };
-            write_file_r1 = file_io::write_to_file(
-                r1_rec,
-                write_file_r1,
-                ru_rec.seq(),
-                args.delim.as_ref(),
-                read_nr,
-            )?;
+            let r1_rec = update_record(r1_rec, ru_rec.seq(), args.delim.as_ref(), read_nr)?;
+
+            write_output_r1.write_record(r1_rec)?;
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
         }
@@ -157,17 +193,37 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         if r2_rec.id().eq(ru_rec.id()) {
             // Write to Output file
             let read_nr = if edit_nr { Some(2) } else { None };
-            write_file_r2 = file_io::write_to_file(
-                r2_rec,
-                write_file_r2,
-                ru_rec.seq(),
-                args.delim.as_ref(),
-                read_nr,
-            )?;
+            let r2_rec = update_record(r2_rec, ru_rec.seq(), args.delim.as_ref(), read_nr)?;
+
+            write_output_r2.write_record(r2_rec)?;
         } else {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
         }
     }
     println!("Processed {:?} records", counter);
     Ok(counter)
+}
+
+// Updates the header and description of the reads accordingly
+fn update_record(
+    input: bio::io::fastq::Record,
+    umi: &[u8],
+    umi_sep: Option<&String>,
+    edit_nr: Option<u8>,
+) -> Result<bio::io::fastq::Record> {
+    let delim = umi_sep.as_ref().map(|s| s.as_str()).unwrap_or(":"); // the delimiter for the UMI
+    if let Some(number) = edit_nr {
+        let new_id = &[input.id(), delim, std::str::from_utf8(umi).unwrap()].concat();
+        let mut new_desc = String::from(input.desc().unwrap());
+        new_desc.replace_range(0..1, &number.to_string());
+        let desc: Option<&str> = Some(&new_desc);
+        let new_record =
+            bio::io::fastq::Record::with_attrs(new_id, desc, input.seq(), input.qual());
+        Ok(new_record)
+    } else {
+        let new_id = &[input.id(), delim, std::str::from_utf8(umi).unwrap()].concat();
+        let new_record =
+            bio::io::fastq::Record::with_attrs(new_id, input.desc(), input.seq(), input.qual());
+        Ok(new_record)
+    }
 }
