@@ -18,6 +18,7 @@
 
 <hr>
 
+[![DOI](https://zenodo.org/badge/516446355.svg)](https://zenodo.org/doi/10.5281/zenodo.12581602)
 [![License: MIT](https://img.shields.io/badge/License-MIT-491f53.svg)](https://opensource.org/licenses/MIT)
 ![GitHub Actions Tests](https://img.shields.io/github/actions/workflow/status/SciLifeLab/umi-transfer/.github%2Fworkflows%2Ftesting.yml?branch=dev&logo=github&label=Tests&color=%23a7c947)
 [![codecov](https://codecov.io/gh/SciLifeLab/umi-transfer/branch/dev/graph/badge.svg)](https://codecov.io/gh/SciLifeLab/umi-transfer)
