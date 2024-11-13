@@ -196,7 +196,7 @@ pub fn run(args: OptsExternal) -> Result<i32> {
 
             let r1_rec = match args.target_position {
                 UMIDestination::Header => umi_to_record_header(r1_rec, ru_rec.seq(), args.delim.as_ref(), read_nr),
-                UMIDestination::Inline => umi_to_record_seq(r1_rec, ru_rec.seq(), args.delim.as_ref(), read_nr),
+                UMIDestination::Inline => umi_to_record_seq(r1_rec, ru_rec.seq(), ru_rec.qual(), read_nr),
             }?;
 
             write_output_r1.write_record(r1_rec)?;
@@ -207,10 +207,10 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         if r2_rec.id().eq(ru_rec.id()) {
             // Write to Output file
             let read_nr = if edit_nr { Some(2) } else { None };
-            
+
             let r2_rec = match args.target_position {
                 UMIDestination::Header => umi_to_record_header(r2_rec, ru_rec.seq(), args.delim.as_ref(), read_nr),
-                UMIDestination::Inline => umi_to_record_seq(r2_rec, ru_rec.seq(), args.delim.as_ref(), read_nr),
+                UMIDestination::Inline => umi_to_record_seq(r2_rec, ru_rec.seq(), ru_rec.qual() , read_nr),
             }?;
 
             write_output_r2.write_record(r2_rec)?;
