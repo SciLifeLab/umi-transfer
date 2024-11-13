@@ -43,8 +43,8 @@ pub fn umi_to_record_seq(
     let concatenated_seq_str = String::from_utf8(concatenated_seq).unwrap();
 
     let mut concatenated_qual = Vec::with_capacity(input.qual().len() + umi_qual.len());
-    concatenated_qual.extend_from_slice(umi);
-    concatenated_qual.extend_from_slice(input.seq());
+    concatenated_qual.extend_from_slice(umi_qual);
+    concatenated_qual.extend_from_slice(input.qual());
     let concatenated_qual_str = String::from_utf8(concatenated_qual).unwrap();
 
     if let Some(number) = edit_nr {
