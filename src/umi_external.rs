@@ -5,9 +5,18 @@ use std::path::PathBuf;
 
 use super::file_io;
 use crate::auxiliary::{threads_available, threads_per_task};
+use crate::read_editing::UMIDestination;
 use crate::umi_errors::RuntimeErrors;
 #[derive(Debug, Parser)]
 pub struct OptsExternal {
+    #[clap(
+        short = 'p',
+        long = "position",
+        help = "Choose the target position for the UMI: 'header' or 'inline'. Defaults to 'header'.
+        \n ",
+        default_value = "header",
+    )]
+    target_position: UMIDestination,
     #[clap(
         short = 'c',
         long = "correct_numbers",
@@ -15,6 +24,7 @@ pub struct OptsExternal {
         \n "
     )]
     edit_nr: bool,
+
     #[clap(
         short = 'z',
         long = "gzip",
