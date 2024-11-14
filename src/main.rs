@@ -11,9 +11,9 @@ use crate::umi_external::OptsExternal;
 ///use crate::umi_internal::OptsInternal;
 mod auxiliary;
 mod file_io;
+mod read_editing;
 mod umi_errors;
 mod umi_external;
-mod read_editing;
 
 const LOGO: &str = r#"
 ░░░░░░░░░░░░░░░░░░░░░░░░░░░ SciLifeLab - National Genomics Infrastructure ░░░░░░░░░░░░░░░░░░░░░░░░░░░                                              
