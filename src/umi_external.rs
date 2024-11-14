@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use super::file_io;
 use crate::auxiliary::{threads_available, threads_per_task};
-use crate::read_editing::{umi_to_record_header,umi_to_record_seq,UMIDestination};
+use crate::read_editing::{umi_to_record_header, umi_to_record_seq, UMIDestination};
 use crate::umi_errors::RuntimeErrors;
 #[derive(Debug, Parser)]
 pub struct OptsExternal {
@@ -14,7 +14,7 @@ pub struct OptsExternal {
         long = "position",
         help = "Choose the target position for the UMI: 'header' or 'inline'. Defaults to 'header'.
         \n ",
-        default_value = "header",
+        default_value = "header"
     )]
     target_position: UMIDestination,
     #[clap(
@@ -195,8 +195,12 @@ pub fn run(args: OptsExternal) -> Result<i32> {
             let read_nr = if edit_nr { Some(1) } else { None };
 
             let r1_rec = match args.target_position {
-                UMIDestination::Header => umi_to_record_header(r1_rec, ru_rec.seq(), args.delim.as_ref(), read_nr),
-                UMIDestination::Inline => umi_to_record_seq(r1_rec, ru_rec.seq(), ru_rec.qual(), read_nr),
+                UMIDestination::Header => {
+                    umi_to_record_header(r1_rec, ru_rec.seq(), args.delim.as_ref(), read_nr)
+                }
+                UMIDestination::Inline => {
+                    umi_to_record_seq(r1_rec, ru_rec.seq(), ru_rec.qual(), read_nr)
+                }
             }?;
 
             write_output_r1.write_record(r1_rec)?;
@@ -209,8 +213,12 @@ pub fn run(args: OptsExternal) -> Result<i32> {
             let read_nr = if edit_nr { Some(2) } else { None };
 
             let r2_rec = match args.target_position {
-                UMIDestination::Header => umi_to_record_header(r2_rec, ru_rec.seq(), args.delim.as_ref(), read_nr),
-                UMIDestination::Inline => umi_to_record_seq(r2_rec, ru_rec.seq(), ru_rec.qual() , read_nr),
+                UMIDestination::Header => {
+                    umi_to_record_header(r2_rec, ru_rec.seq(), args.delim.as_ref(), read_nr)
+                }
+                UMIDestination::Inline => {
+                    umi_to_record_seq(r2_rec, ru_rec.seq(), ru_rec.qual(), read_nr)
+                }
             }?;
 
             write_output_r2.write_record(r2_rec)?;
@@ -221,4 +229,3 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     println!("Processed {:?} records", counter);
     Ok(counter)
 }
-
