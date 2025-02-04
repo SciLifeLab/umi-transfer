@@ -60,7 +60,7 @@ fn testing_file_comparison_fails() {
 // Yep, verify_file_contents() does its job. Ready to rumble!
 
 #[test]
-fn external_produces_correct_output() -> TestResult {
+fn external_produces_correct_output_header() -> TestResult {
     let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
     cmd.arg("external")
         .arg("--in")
@@ -70,23 +70,20 @@ fn external_produces_correct_output() -> TestResult {
         .arg("--umi")
         .arg(test_files.umi);
 
-    cmd.assert().success(); //further assertions have been tested in other tests
+    cmd.assert().success();
 
     temp_dir
         .child("read1_with_UMIs.fq")
         .assert(predicate::path::exists());
-
     temp_dir
         .child("read2_with_UMIs.fq")
         .assert(predicate::path::exists());
 
     let reference = test_output.unwrap();
-
     verify_file_contents(
         &temp_dir.child("read1_with_UMIs.fq").to_path_buf(),
         &reference.header_read1,
     )?;
-
     verify_file_contents(
         &temp_dir.child("read2_with_UMIs.fq").to_path_buf(),
         &reference.header_read2,
@@ -97,7 +94,43 @@ fn external_produces_correct_output() -> TestResult {
 }
 
 #[test]
-fn external_corrects_read_numbers_in_output() -> TestResult {
+fn external_produces_correct_output_inline() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--position")
+        .arg("inline");
+
+    cmd.assert().success();
+
+    temp_dir
+        .child("read1_with_UMIs.fq")
+        .assert(predicate::path::exists());
+    temp_dir
+        .child("read2_with_UMIs.fq")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+    verify_file_contents(
+        &temp_dir.child("read1_with_UMIs.fq").to_path_buf(),
+        &reference.inline_read1,
+    )?;
+    verify_file_contents(
+        &temp_dir.child("read2_with_UMIs.fq").to_path_buf(),
+        &reference.inline_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn external_corrects_read_numbers_in_output_header() -> TestResult {
     let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
     cmd.arg("external")
         .arg("--in")
@@ -108,26 +141,284 @@ fn external_corrects_read_numbers_in_output() -> TestResult {
         .arg(test_files.umi)
         .arg("--correct_numbers");
 
-    cmd.assert().success(); //further assertions have been tested in other tests
+    cmd.assert().success();
 
     temp_dir
         .child("read1_with_UMIs.fq")
         .assert(predicate::path::exists());
-
     temp_dir
         .child("read2_with_UMIs.fq")
         .assert(predicate::path::exists());
 
     let reference = test_output.unwrap();
-
     verify_file_contents(
         &temp_dir.child("read1_with_UMIs.fq").to_path_buf(),
         &reference.header_corrected_read1,
     )?;
-
     verify_file_contents(
         &temp_dir.child("read2_with_UMIs.fq").to_path_buf(),
         &reference.header_corrected_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn external_corrects_read_numbers_in_output_inline() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--correct_numbers")
+        .arg("--position")
+        .arg("inline");
+
+    cmd.assert().success();
+
+    temp_dir
+        .child("read1_with_UMIs.fq")
+        .assert(predicate::path::exists());
+    temp_dir
+        .child("read2_with_UMIs.fq")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+    verify_file_contents(
+        &temp_dir.child("read1_with_UMIs.fq").to_path_buf(),
+        &reference.inline_corrected_read1,
+    )?;
+    verify_file_contents(
+        &temp_dir.child("read2_with_UMIs.fq").to_path_buf(),
+        &reference.inline_corrected_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn external_produces_correct_compressed_output_header() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--gzip");
+
+    cmd.assert().success();
+
+    temp_dir
+        .child("read1_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+    temp_dir
+        .child("read2_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+    verify_file_binary(
+        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
+        &reference.header_compressed_read1,
+    )?;
+    verify_file_binary(
+        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
+        &reference.header_compressed_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn external_produces_correct_compressed_output_inline() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--gzip")
+        .arg("--position")
+        .arg("inline");
+
+    cmd.assert().success();
+
+    temp_dir
+        .child("read1_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+    temp_dir
+        .child("read2_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+    verify_file_binary(
+        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
+        &reference.inline_compressed_read1,
+    )?;
+    verify_file_binary(
+        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
+        &reference.inline_compressed_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn external_produces_correct_compressed_output_mod_compression_level_header() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--compression_level")
+        .arg("9")
+        .arg("--gzip");
+
+    cmd.assert().success();
+
+    temp_dir
+        .child("read1_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+    temp_dir
+        .child("read2_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+    verify_file_binary(
+        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
+        &reference.header_more_compressed_read1,
+    )?;
+    verify_file_binary(
+        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
+        &reference.header_more_compressed_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn external_produces_correct_compressed_output_mod_compression_level_inline() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--compression_level")
+        .arg("9")
+        .arg("--gzip")
+        .arg("--position")
+        .arg("inline");
+
+    cmd.assert().success();
+
+    temp_dir
+        .child("read1_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+    temp_dir
+        .child("read2_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+    verify_file_binary(
+        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
+        &reference.inline_more_compressed_read1,
+    )?;
+    verify_file_binary(
+        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
+        &reference.inline_more_compressed_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn external_produces_correct_compressed_output_thread_limit_header() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--threads")
+        .arg("3")
+        .arg("--gzip");
+
+    cmd.assert().success();
+
+    temp_dir
+        .child("read1_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+    temp_dir
+        .child("read2_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+    verify_file_binary(
+        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
+        &reference.header_compressed_read1,
+    )?;
+    verify_file_binary(
+        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
+        &reference.header_compressed_read2,
+    )?;
+
+    temp_dir.close()?;
+    Ok(())
+}
+
+#[test]
+fn external_produces_correct_compressed_output_thread_limit_inline() -> TestResult {
+    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--threads")
+        .arg("3")
+        .arg("--gzip")
+        .arg("--position")
+        .arg("inline");
+
+    cmd.assert().success();
+
+    temp_dir
+        .child("read1_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+    temp_dir
+        .child("read2_with_UMIs.fq.gz")
+        .assert(predicate::path::exists());
+
+    let reference = test_output.unwrap();
+    verify_file_binary(
+        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
+        &reference.inline_compressed_read1,
+    )?;
+    verify_file_binary(
+        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
+        &reference.inline_compressed_read2,
     )?;
 
     temp_dir.close()?;
@@ -212,120 +503,3 @@ fn external_switch_umi_and_read2() -> TestResult {
     Ok(())
 }
 
-#[test]
-fn external_produces_correct_compressed_output() -> TestResult {
-    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
-    cmd.arg("external")
-        .arg("--in")
-        .arg(test_files.read1)
-        .arg("--in2")
-        .arg(test_files.read2)
-        .arg("--umi")
-        .arg(test_files.umi)
-        .arg("--gzip");
-
-    cmd.assert().success(); //further assertions have been tested in other tests
-
-    temp_dir
-        .child("read1_with_UMIs.fq.gz")
-        .assert(predicate::path::exists());
-
-    temp_dir
-        .child("read2_with_UMIs.fq.gz")
-        .assert(predicate::path::exists());
-
-    let reference = test_output.unwrap();
-
-    verify_file_binary(
-        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
-        &reference.header_compressed_read1,
-    )?;
-
-    verify_file_binary(
-        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
-        &reference.header_compressed_read2,
-    )?;
-
-    temp_dir.close()?;
-    Ok(())
-}
-
-#[test]
-fn external_produces_correct_compressed_output_mod_compression_level() -> TestResult {
-    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
-    cmd.arg("external")
-        .arg("--in")
-        .arg(test_files.read1)
-        .arg("--in2")
-        .arg(test_files.read2)
-        .arg("--umi")
-        .arg(test_files.umi)
-        .arg("--compression_level")
-        .arg("9")
-        .arg("--gzip");
-
-    cmd.assert().success(); //further assertions have been tested in other tests
-
-    temp_dir
-        .child("read1_with_UMIs.fq.gz")
-        .assert(predicate::path::exists());
-
-    temp_dir
-        .child("read2_with_UMIs.fq.gz")
-        .assert(predicate::path::exists());
-
-    let reference = test_output.unwrap();
-
-    verify_file_binary(
-        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
-        &reference.header_more_compressed_read1,
-    )?;
-
-    verify_file_binary(
-        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
-        &reference.header_more_compressed_read2,
-    )?;
-
-    temp_dir.close()?;
-    Ok(())
-}
-
-#[test]
-fn external_produces_correct_compressed_output_thread_limit() -> TestResult {
-    let (mut cmd, temp_dir, test_files, test_output) = auxiliary::setup_integration_test(true);
-    cmd.arg("external")
-        .arg("--in")
-        .arg(test_files.read1)
-        .arg("--in2")
-        .arg(test_files.read2)
-        .arg("--umi")
-        .arg(test_files.umi)
-        .arg("--threads")
-        .arg("3")
-        .arg("--gzip");
-
-    cmd.assert().success(); //further assertions have been tested in other tests
-
-    temp_dir
-        .child("read1_with_UMIs.fq.gz")
-        .assert(predicate::path::exists());
-
-    temp_dir
-        .child("read2_with_UMIs.fq.gz")
-        .assert(predicate::path::exists());
-
-    let reference = test_output.unwrap();
-
-    verify_file_binary(
-        &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
-        &reference.header_compressed_read1,
-    )?;
-
-    verify_file_binary(
-        &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
-        &reference.header_compressed_read2,
-    )?;
-
-    temp_dir.close()?;
-    Ok(())
-}
