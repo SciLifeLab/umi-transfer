@@ -502,4 +502,3 @@ fn external_switch_umi_and_read2() -> TestResult {
     temp_dir.close()?;
     Ok(())
 }
-
