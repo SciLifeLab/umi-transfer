@@ -100,7 +100,7 @@ pub fn setup_integration_test(
 
     let test_output = if with_results {
         let temp = TestOutput {
-            // Header-based examples
+            // Header examples
             header_read1: temp_dir.path().join("header_correct_read1.fq"),
             header_read2: temp_dir.path().join("header_correct_read2.fq"),
             header_compressed_read1: temp_dir.path().join("header_correct_read1.fq.gz"),
@@ -109,12 +109,12 @@ pub fn setup_integration_test(
             header_more_compressed_read2: temp_dir.path().join("header_correct_read2_lvl9.fq.gz"),
             header_corrected_read1: temp_dir.path().join("header_corrected_read1.fq"),
             header_corrected_read2: temp_dir.path().join("header_corrected_read2.fq"),
-            // Special cases (unchanged)
+            // Special cases
             delim_underscore_read1: temp_dir.path().join("delim_underscore_read1.fq"),
             delim_underscore_read2: temp_dir.path().join("delim_underscore_read2.fq"),
             umi_read2_switch_read1: temp_dir.path().join("umi_read2_switch_read1.fq"),
             umi_read2_switch_read2: temp_dir.path().join("umi_read2_switch_read2.fq"),
-            // Inline examples
+            // Analogous inline examples
             inline_read1: temp_dir.path().join("inline_correct_read1.fq"),
             inline_read2: temp_dir.path().join("inline_correct_read2.fq"),
             inline_compressed_read1: temp_dir.path().join("inline_correct_read1.fq.gz"),

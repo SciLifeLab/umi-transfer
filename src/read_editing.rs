@@ -122,7 +122,7 @@ mod tests {
             "@SCILIFELAB:500:NGISTLM:1:1101:2446:1031",
             Some("1:N:0:GCTTCAGGGT+AAGGTAGCGT"),
             b"TCGTTTTCCGC",
-            b"!!!!",
+            b"FFFFFFFFFFF",
         );
         let umi = b"ACCAGCTA";
         let umi_qual = b"########";
