@@ -1,4 +1,4 @@
-use assert_cmd::Command;
+use assert_cmd::cargo::cargo_bin_cmd;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 use std::process::Command as StdCommand;
@@ -10,7 +10,7 @@ mod auxiliary;
 
 #[test]
 fn external_fails_without_arguments() {
-    let mut cmd = Command::cargo_bin(assert_cmd::pkg_name!()).unwrap();
+    let mut cmd = cargo_bin_cmd!();
 
     cmd.arg("external");
 
@@ -241,8 +241,7 @@ fn external_fails_with_existing_output_file_and_no_force() {
     // Therefore, we use rexpect to run the test in a session and must use
     // a different Command type: std::process::Command instead of assert_cmd::Command.
 
-    let bin_path = assert_cmd::cargo::cargo_bin("umi-transfer");
-    let mut cmd = StdCommand::new(bin_path);
+    let mut cmd = StdCommand::new(assert_cmd::cargo::cargo_bin!());
     cmd.arg("external")
         .arg("--in")
         .arg(test_files.read1_gz)
