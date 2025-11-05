@@ -10,7 +10,7 @@ mod auxiliary;
 
 #[test]
 fn external_fails_without_arguments() {
-    let mut cmd = Command::cargo_bin(assert_cmd::crate_name!()).unwrap();
+    let mut cmd = Command::cargo_bin(assert_cmd::pkg_name!()).unwrap();
 
     cmd.arg("external");
 

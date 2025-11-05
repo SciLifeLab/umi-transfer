@@ -57,7 +57,7 @@ pub fn setup_integration_test(
     with_results: bool,
 ) -> (Command, TempDir, TestFiles, Option<TestOutput>) {
     // Get the name of the binary (umi-transfer)
-    let cmd = Command::cargo_bin(assert_cmd::crate_name!())
+    let cmd = Command::cargo_bin(assert_cmd::pkg_name!())
         .expect("Failed to pull binary name from Cargo.toml at compile time.");
 
     let temp_dir = assert_fs::TempDir::new().expect("Failed to create temporary directory");

@@ -7,7 +7,7 @@ mod auxiliary;
 
 #[test]
 fn main_without_arguments_prints_help() {
-    let mut cmd = Command::cargo_bin(assert_cmd::crate_name!()).unwrap();
+    let mut cmd = Command::cargo_bin(assert_cmd::pkg_name!()).unwrap();
     // Clap prints help to stderr in this case, but to stdout with -h or --help.
     cmd.assert()
         .success()
@@ -18,7 +18,7 @@ fn main_without_arguments_prints_help() {
 
 #[test]
 fn main_help_prints_help() {
-    let mut cmd = Command::cargo_bin(assert_cmd::crate_name!()).unwrap();
+    let mut cmd = Command::cargo_bin(assert_cmd::pkg_name!()).unwrap();
 
     // Clap prints help to stdout with -h or --help.
     for help in &["-h", "--help"] {
