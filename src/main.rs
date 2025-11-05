@@ -11,6 +11,7 @@ use crate::umi_external::OptsExternal;
 ///use crate::umi_internal::OptsInternal;
 mod auxiliary;
 mod file_io;
+mod read_editing;
 mod umi_errors;
 mod umi_external;
 
@@ -25,7 +26,7 @@ https://github.com/SciLifeLab/umi-transfer
 
 #[derive(clap::Parser)]
 #[clap(
-    version = "1.5.0",
+    version = "1.6.0",
     author = "Written by Matthias Zepper, Judit Hohenthal & Johannes Alneberg",
     about = "A tool for transferring Unique Molecular Identifiers (UMIs).",
     long_about = "Most tools capable of using UMIs to increase the accuracy of quantitative DNA sequencing experiments expect the respective UMI sequence to be embedded into the reads' IDs. You can use `umi-transfer external` to retrieve UMIs from a separate FastQ file and embed them to the IDs of your paired FastQ files."

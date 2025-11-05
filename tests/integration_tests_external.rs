@@ -53,6 +53,36 @@ fn external_with_minimal_arguments_plain() {
 }
 
 #[test]
+fn external_with_inline_position() {
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--position")
+        .arg("inline");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Transferring UMIs to records"))
+        .stdout(predicate::str::contains("Processed 10 records"))
+        .stdout(predicate::str::contains("umi-transfer finished after"));
+
+    temp_dir
+        .child("read1_with_UMIs.fq")
+        .assert(predicate::path::exists());
+
+    temp_dir
+        .child("read2_with_UMIs.fq")
+        .assert(predicate::path::exists());
+
+    temp_dir.close().unwrap();
+}
+
+#[test]
 fn external_with_minimal_arguments_compressed() {
     let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
     cmd.arg("external")
