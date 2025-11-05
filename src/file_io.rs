@@ -56,7 +56,7 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
 // Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
 pub enum OutputFile {
     Plain(FastqWriter<File>),
-    Compressed(FastqWriter<Box<dyn ZWriter>>),
+    Compressed(FastqWriter<Box<dyn ZWriter<File>>>),
 }
 
 impl OutputFile {
