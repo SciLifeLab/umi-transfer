@@ -30,18 +30,26 @@ pub struct TestFiles {
 #[allow(dead_code)]
 pub struct TestOutput {
     // Struct to hold the paths to validated output files.
-    pub correct_read1: PathBuf,
-    pub correct_read2: PathBuf,
-    pub compressed_correct_read1: PathBuf,
-    pub compressed_correct_read2: PathBuf,
-    pub more_compressed_correct_read1: PathBuf,
-    pub more_compressed_correct_read2: PathBuf,
-    pub corrected_read1: PathBuf,
-    pub corrected_read2: PathBuf,
+    pub header_read1: PathBuf,
+    pub header_read2: PathBuf,
+    pub header_compressed_read1: PathBuf,
+    pub header_compressed_read2: PathBuf,
+    pub header_more_compressed_read1: PathBuf,
+    pub header_more_compressed_read2: PathBuf,
+    pub header_corrected_read1: PathBuf,
+    pub header_corrected_read2: PathBuf,
     pub delim_underscore_read1: PathBuf,
     pub delim_underscore_read2: PathBuf,
     pub umi_read2_switch_read1: PathBuf,
     pub umi_read2_switch_read2: PathBuf,
+    pub inline_read1: PathBuf,
+    pub inline_read2: PathBuf,
+    pub inline_compressed_read1: PathBuf,
+    pub inline_compressed_read2: PathBuf,
+    pub inline_more_compressed_read1: PathBuf,
+    pub inline_more_compressed_read2: PathBuf,
+    pub inline_corrected_read1: PathBuf,
+    pub inline_corrected_read2: PathBuf,
 }
 
 #[allow(dead_code)]
@@ -92,18 +100,29 @@ pub fn setup_integration_test(
 
     let test_output = if with_results {
         let temp = TestOutput {
-            correct_read1: temp_dir.path().join("correct_read1.fq"),
-            correct_read2: temp_dir.path().join("correct_read2.fq"),
-            compressed_correct_read1: temp_dir.path().join("correct_read1.fq.gz"),
-            compressed_correct_read2: temp_dir.path().join("correct_read2.fq.gz"),
-            more_compressed_correct_read1: temp_dir.path().join("correct_read1_lvl9.fq.gz"),
-            more_compressed_correct_read2: temp_dir.path().join("correct_read2_lvl9.fq.gz"),
-            corrected_read1: temp_dir.path().join("corrected_read1.fq"),
-            corrected_read2: temp_dir.path().join("corrected_read2.fq"),
+            // Header examples
+            header_read1: temp_dir.path().join("header_correct_read1.fq"),
+            header_read2: temp_dir.path().join("header_correct_read2.fq"),
+            header_compressed_read1: temp_dir.path().join("header_correct_read1.fq.gz"),
+            header_compressed_read2: temp_dir.path().join("header_correct_read2.fq.gz"),
+            header_more_compressed_read1: temp_dir.path().join("header_correct_read1_lvl9.fq.gz"),
+            header_more_compressed_read2: temp_dir.path().join("header_correct_read2_lvl9.fq.gz"),
+            header_corrected_read1: temp_dir.path().join("header_corrected_read1.fq"),
+            header_corrected_read2: temp_dir.path().join("header_corrected_read2.fq"),
+            // Special cases
             delim_underscore_read1: temp_dir.path().join("delim_underscore_read1.fq"),
             delim_underscore_read2: temp_dir.path().join("delim_underscore_read2.fq"),
             umi_read2_switch_read1: temp_dir.path().join("umi_read2_switch_read1.fq"),
             umi_read2_switch_read2: temp_dir.path().join("umi_read2_switch_read2.fq"),
+            // Analogous inline examples
+            inline_read1: temp_dir.path().join("inline_correct_read1.fq"),
+            inline_read2: temp_dir.path().join("inline_correct_read2.fq"),
+            inline_compressed_read1: temp_dir.path().join("inline_correct_read1.fq.gz"),
+            inline_compressed_read2: temp_dir.path().join("inline_correct_read2.fq.gz"),
+            inline_more_compressed_read1: temp_dir.path().join("inline_correct_read1_lvl9.fq.gz"),
+            inline_more_compressed_read2: temp_dir.path().join("inline_correct_read2_lvl9.fq.gz"),
+            inline_corrected_read1: temp_dir.path().join("inline_corrected_read1.fq"),
+            inline_corrected_read2: temp_dir.path().join("inline_corrected_read2.fq"),
         };
         Some(temp)
     } else {

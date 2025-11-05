@@ -96,12 +96,12 @@ That should create an executable `target/release/umi-transfer` that can be place
 
 ```shell
 ./target/release/umi-transfer --version
-umi-transfer 1.5.0
+umi-transfer 1.6.0
 ```
 
 ## Usage
 
-The tool requires three FastQ files as input. You can manually specify the names and location of the output files with `--out` and `--out2` or the tool will automatically append a `with_UMI` suffix to your input file names. It additionally accepts to choose a custom UMI delimiter with `--delim` and to set the flags `-f`, `-c` and `-z`.
+The tool requires three FastQ files as input. You can manually specify the names and location of the output files with `--out` and `--out2` or the tool will automatically append a `with_UMI` suffix to your input file names. It additionally allows to choose a custom UMI delimiter with `--delim`, the position of the integrated UMI with`--position`, and to set the flags `-f`, `-c` and `-z`.
 
 `-c` is used to ensure the canonical `1` and `2` of paired files as read numbers in the output, regardless of the read numbers of the input reads. `-f` / `--force` will overwrite existing output files without prompting the user and `-z` enables the internal compression of the output files. Alternatively, you can also specify an output file name with `.gz` suffix to obtain compressed output.
 
@@ -114,6 +114,10 @@ Integrate UMIs from a separate FastQ file
 Usage: umi-transfer external [OPTIONS] --in <R1_IN> --in2 <R2_IN> --umi <RU_IN>
 
 Options:
+  -p, --position <TARGET_POSITION>
+          Choose the target position for the UMI: 'header' or 'inline'. Defaults to 'header'.
+
+            [default: header] [possible values: header, inline]
   -c, --correct_numbers
           Read numbers will be altered to ensure the canonical read numbers 1 and 2 in output file sequence headers.
 
@@ -127,7 +131,7 @@ Options:
 
 
   -t, --threads <NUM_THREADS>
-          Number of threads to use for processing. Defaults to the number of logical cores available.
+          Maximum number of threads to use for processing. Preferably pick odd numbers, 9 or 11 recommended. Defaults to the maximum number of cores available.
 
 
   -f, --force
@@ -181,7 +185,7 @@ umi-transfer external --in read1.fastq --in2 read1.fastq --umi read2.fastq --out
 ### Benchmarks and parameter recommendations
 
 
-With the release of version 1.5,  `umi-transfer` features internal multi-threaded output compression. As a result,  `umi-transfer` 1.5 now runs approximately 25 times faster than version 1.0 when using internal compression and about twice as fast compared to using an external compression tool. This improvement is enabled by the outstanding [`gzp` crate](https://github.com/sstadick/gzp), which abstracts a lot of the underlying complexity away from the main software.
+Since the release of version 1.5,  `umi-transfer` features internal multi-threaded output compression. As a result,  `umi-transfer` 1.5 now runs approximately 25 times faster than version 1.0 when using internal compression and about twice as fast compared to using an external compression tool. This improvement is enabled by the outstanding [`gzp` crate](https://github.com/sstadick/gzp), which abstracts a lot of the underlying complexity away from the main software.
 
 ![Benchmark of different tool versions](docs/img/benchmark_umi-transfer-version.svg)
 
