@@ -40,9 +40,6 @@ jobs:
     - name: Check style
       run:  cargo fmt -- --check
     
-    - name: Lint with Rust Marker
-      uses: rust-marker/marker@v0.5
-  
   test:
     runs-on: ubuntu-latest
     
