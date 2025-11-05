@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use assert_cmd::Command;
+use assert_cmd::cargo::cargo_bin_cmd;
 use assert_fs::fixture::{NamedTempFile, TempDir};
 use assert_fs::prelude::*;
 use predicates::prelude::*;
@@ -57,8 +58,7 @@ pub fn setup_integration_test(
     with_results: bool,
 ) -> (Command, TempDir, TestFiles, Option<TestOutput>) {
     // Get the name of the binary (umi-transfer)
-    let cmd = Command::cargo_bin(assert_cmd::pkg_name!())
-        .expect("Failed to pull binary name from Cargo.toml at compile time.");
+    let cmd = cargo_bin_cmd!();
 
     let temp_dir = assert_fs::TempDir::new().expect("Failed to create temporary directory");
 
