@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
-use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
+use assert_cmd::Command;
 use assert_fs::fixture::{NamedTempFile, TempDir};
 use assert_fs::prelude::*;
 use predicates::prelude::*;
