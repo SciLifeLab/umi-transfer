@@ -1,4 +1,4 @@
-FROM rust:bookworm as buildenv
+FROM rust:trixie as buildenv
 
 WORKDIR /usr/app/src
 COPY ./ /usr/app/src
@@ -11,7 +11,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/rust/target \
     cargo build --release
 
-FROM debian:bookworm-slim as runner
+FROM debian:trixie-slim as runner
 WORKDIR /root
 COPY --from=buildenv /usr/app/src/target/release/ /usr/local/bin/
 RUN chmod 755 /usr/local/bin/umi-transfer
