@@ -34,15 +34,13 @@ pub fn umi_to_record_seq(
     umi_qual: &[u8],
     edit_nr: Option<u8>,
 ) -> Result<bio::io::fastq::Record, anyhow::Error> {
-    let mut concatenated_seq = Vec::with_capacity(input.seq().len() + umi.len());
-    concatenated_seq.extend_from_slice(umi);
-    concatenated_seq.extend_from_slice(input.seq());
-    let concatenated_seq_str = String::from_utf8(concatenated_seq).unwrap();
+    let mut concatenated_seq_str = String::with_capacity(umi.len() + input.seq().len());
+    concatenated_seq_str.push_str(std::str::from_utf8(umi)?);
+    concatenated_seq_str.push_str(std::str::from_utf8(input.seq())?);
 
-    let mut concatenated_qual = Vec::with_capacity(input.qual().len() + umi_qual.len());
-    concatenated_qual.extend_from_slice(umi_qual);
-    concatenated_qual.extend_from_slice(input.qual());
-    let concatenated_qual_str = String::from_utf8(concatenated_qual).unwrap();
+    let mut concatenated_qual_str = String::with_capacity(umi_qual.len() + input.qual().len());
+    concatenated_qual_str.push_str(std::str::from_utf8(umi_qual)?);
+    concatenated_qual_str.push_str(std::str::from_utf8(input.qual())?);
 
     if let Some(number) = edit_nr {
         let mut new_desc = String::from(input.desc().unwrap());
