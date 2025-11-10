@@ -4,7 +4,7 @@
 # umi-transfer
 
 <p>
-    <b>A command line tool for transferring Unique Molecular Identifiers (UMIs) provided as separate FastQ file to the header of records in paired FastQ files.</b>
+    <b>A command line tool for transferring Unique Molecular Identifiers (UMIs) provided as a separate FastQ file to the header of records in paired FastQ files.</b>
 </p>
 
 <hr>
@@ -30,7 +30,7 @@
 
 To increase the accuracy of quantitative DNA sequencing experiments, Unique Molecular Identifiers may be used. UMIs are short sequences used to uniquely tag each molecule in a sample library, enabling precise identification of read duplicates. They must be added during library preparation and prior to sequencing, therefore require appropriate arrangements with your sequencing provider.
 
-Most tools capable of taking UMIs into consideration during an analysis workflow, expect the respective UMI sequence to be embedded into the read's ID. Please consult your tools' manuals regarding the exact specification.
+Most tools capable of taking UMIs into consideration during an analysis workflow expect the respective UMI sequence to be embedded into the read's ID. Please consult your tools' manuals regarding the exact specification.
 
 For some library preparation kits and sequencing adapters, the UMI sequence needs to be read together with the index from the antisense strand. Consequently, it will be output as a separate FastQ file during the demultiplexing process.
 
@@ -44,7 +44,7 @@ Binaries for `umi-transfer` are available for most platforms and can be obtained
 
 ### Bioconda
 
- `umi-transfer` is also available on [BioConda](https://bioconda.github.io/). Please refer to the [Bioconda documentation](https://bioconda.github.io/recipes/umi-transfer/README.html#package-umi-transfer) for comprehensive installation instructions. If you are already familiar with conda and BioConda, here’s a quick reference:
+`umi-transfer` is also available on [BioConda](https://bioconda.github.io/). Please refer to the [Bioconda documentation](https://bioconda.github.io/recipes/umi-transfer/README.html#package-umi-transfer) for comprehensive installation instructions. If you are already familiar with conda and BioConda, here's a quick reference:
 
 ```shell
 mamba install umi-transfer
@@ -101,9 +101,9 @@ umi-transfer 1.6.0
 
 ## Usage
 
-The tool requires three FastQ files as input. You can manually specify the names and location of the output files with `--out` and `--out2` or the tool will automatically append a `with_UMI` suffix to your input file names. It additionally allows to choose a custom UMI delimiter with `--delim`, the position of the integrated UMI with`--position`, and to set the flags `-f`, `-c` and `-z`.
+The tool requires three FastQ files as input. You can manually specify the names and location of the output files with `--out` and `--out2` or the tool will automatically append a `with_UMI` suffix to your input file names. It additionally allows you to choose a custom UMI delimiter with `--delim`, the position of the integrated UMI with `--position`, and to set the flags `-f`, `-c` and `-z`.
 
-`-c` is used to ensure the canonical `1` and `2` of paired files as read numbers in the output, regardless of the read numbers of the input reads. `-f` / `--force` will overwrite existing output files without prompting the user and `-z` enables the internal compression of the output files. Alternatively, you can also specify an output file name with `.gz` suffix to obtain compressed output.
+`-c` is used to ensure the canonical read numbers `1` and `2` in paired output files, regardless of the read numbers of the input reads. `-f` / `--force` will overwrite existing output files without prompting the user and `-z` enables the internal compression of the output files. Alternatively, you can also specify an output file name with `.gz` suffix to obtain compressed output.
 
 ```raw
 $ umi-transfer external --help
@@ -184,12 +184,24 @@ umi-transfer external --in read1.fastq --in2 read1.fastq --umi read2.fastq --out
 
 ### Benchmarks and parameter recommendations
 
+#### umi-transfer versions
 
-Since the release of version 1.5,  `umi-transfer` features internal multi-threaded output compression. As a result,  `umi-transfer` 1.5 now runs approximately 25 times faster than version 1.0 when using internal compression and about twice as fast compared to using an external compression tool. This improvement is enabled by the outstanding [`gzp` crate](https://github.com/sstadick/gzp), which abstracts a lot of the underlying complexity away from the main software.
+Since the release of version 1.5, `umi-transfer` features internal multi-threaded output compression. As a result, `umi-transfer` 1.5 now runs approximately 25 times faster than version 1.0 when using internal compression and about twice as fast compared to using an external compression tool. This improvement is enabled by the outstanding [`gzp` crate](https://github.com/sstadick/gzp), which abstracts a lot of the underlying complexity away from the main software.
 
 ![Benchmark of different tool versions](docs/img/benchmark_umi-transfer-version.svg)
 
 In our first benchmark using 17 threads, version 1.5 of `umi-transfer` processed approximately 550,000 paired records per second with the default gzip compression level of 3. At the highest compression level of 9, the rate dropped to just below 200,000 records per second. While the exact numbers may vary depending on your storage, file system, and processors, we expect the relative performance rates to remain approximately constant.
+
+| Version | Command | `--position` | ~ reads / s |
+|----------|----------|----------|----------|
+| 1.0   | external   | N/A   | 30500   |
+| 1.5   | external   | N/A   | 591200   |
+| 1.6   | external   | Header   | 579500   |
+| 1.6   | external   | Inline   | 567287   |
+
+*Due to the new `--position` parameter for choosing the UMI integration position, Version 1.6 is about 5% slower than its predecessor. If you do not require this option, there is no need to upgrade.*
+
+#### umi-transfer thread setting
 
 ![Benchmark of thread numbers](docs/img/benchmark_umi-transfer-threads.svg)
 
@@ -232,7 +244,7 @@ umi-transfer external --in read1.fastq --in2 read3.fastq --umi read2.fastq --out
 It's good practice to remove the FIFOs after the program has finished:
 
 ```shell
-rm output1.fastq output2.fastq
+rm output1 output2
 ```
 
 ## Contribution guide for developers
