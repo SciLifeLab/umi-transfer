@@ -1,4 +1,4 @@
-use assert_cmd::Command;
+use assert_cmd::cargo::cargo_bin_cmd;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 use std::process::Command as StdCommand;
@@ -10,7 +10,7 @@ mod auxiliary;
 
 #[test]
 fn external_fails_without_arguments() {
-    let mut cmd = Command::cargo_bin(assert_cmd::crate_name!()).unwrap();
+    let mut cmd = cargo_bin_cmd!();
 
     cmd.arg("external");
 
@@ -34,6 +34,36 @@ fn external_with_minimal_arguments_plain() {
         .arg(test_files.read2)
         .arg("--umi")
         .arg(test_files.umi);
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Transferring UMIs to records"))
+        .stdout(predicate::str::contains("Processed 10 records"))
+        .stdout(predicate::str::contains("umi-transfer finished after"));
+
+    temp_dir
+        .child("read1_with_UMIs.fq")
+        .assert(predicate::path::exists());
+
+    temp_dir
+        .child("read2_with_UMIs.fq")
+        .assert(predicate::path::exists());
+
+    temp_dir.close().unwrap();
+}
+
+#[test]
+fn external_with_inline_position() {
+    let (mut cmd, temp_dir, test_files, _test_output) = auxiliary::setup_integration_test(false);
+    cmd.arg("external")
+        .arg("--in")
+        .arg(test_files.read1)
+        .arg("--in2")
+        .arg(test_files.read2)
+        .arg("--umi")
+        .arg(test_files.umi)
+        .arg("--position")
+        .arg("inline");
 
     cmd.assert()
         .success()
@@ -211,8 +241,7 @@ fn external_fails_with_existing_output_file_and_no_force() {
     // Therefore, we use rexpect to run the test in a session and must use
     // a different Command type: std::process::Command instead of assert_cmd::Command.
 
-    let bin_path = assert_cmd::cargo::cargo_bin("umi-transfer");
-    let mut cmd = StdCommand::new(bin_path);
+    let mut cmd = StdCommand::new(assert_cmd::cargo::cargo_bin!());
     cmd.arg("external")
         .arg("--in")
         .arg(test_files.read1_gz)
