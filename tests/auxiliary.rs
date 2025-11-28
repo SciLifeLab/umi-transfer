@@ -8,7 +8,6 @@ use std::io::Read;
 use std::path::PathBuf;
 // since those are just needed for the tests, I didn't put it in src. Therefore, using this module is not detected and dead_code warnings issued.
 
-#[derive()]
 #[allow(dead_code)]
 pub struct TestFiles {
     // Struct to hold the paths to test files.
@@ -27,7 +26,6 @@ pub struct TestFiles {
     pub new_output_read2_gz: PathBuf,
 }
 
-#[derive()]
 #[allow(dead_code)]
 pub struct TestOutput {
     // Struct to hold the paths to validated output files.
@@ -129,15 +127,15 @@ pub fn setup_integration_test(
         None
     };
 
-    return (cmd, temp_dir, test_files, test_output);
+    (cmd, temp_dir, test_files, test_output)
 }
 
 // Function to compare two files, used to test if the program output matches the reference.
 #[allow(dead_code)]
 pub fn verify_file_contents(test_file: &PathBuf, reference_file: &PathBuf) -> Result<bool> {
-    let test_file_content = std::fs::read_to_string(&test_file)
+    let test_file_content = std::fs::read_to_string(test_file)
         .map_err(|err| anyhow!("Failed to read test file: {}", err))?;
-    let reference_file_content = std::fs::read_to_string(&reference_file)
+    let reference_file_content = std::fs::read_to_string(reference_file)
         .map_err(|err| anyhow!("Failed to read reference file: {}", err))?;
 
     let predicate_fn = predicate::str::diff(reference_file_content);
