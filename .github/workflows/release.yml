@@ -29,8 +29,9 @@ jobs:
 
     strategy:
       fail-fast: false
+      # See https://github.com/actions/runner-images for available images.
       matrix:
-        build: [linux, linux-arm, macos, win-msvc, win-gnu, win32-msvc]
+        build: [linux, linux-arm, macos, macos-intel, win-msvc, win-gnu, win32-msvc]
         include:
         - build: linux
           os: ubuntu-latest
@@ -45,11 +46,15 @@ jobs:
           rust: nightly
           target: arm-unknown-linux-gnueabihf
         - build: macos
-          os: macOS-11
+          os: macos-latest
+          rust: nightly
+          target: aarch64-apple-darwin
+        - build: macos-intel
+          os: macos-15-intel
           rust: nightly
           target: x86_64-apple-darwin
         - build: win-msvc
-          os: windows-2019
+          os: windows-latest
           rust: nightly
           target: x86_64-pc-windows-msvc
         - build: win-gnu
@@ -57,7 +62,7 @@ jobs:
           rust: nightly-x86_64-gnu
           target: x86_64-pc-windows-gnu
         - build: win32-msvc
-          os: windows-2019
+          os: windows-latest
           rust: nightly
           target: i686-pc-windows-msvc
 
@@ -84,7 +89,7 @@ jobs:
           zsh xz-utils liblz4-tool musl-tools
 
     - name: Install packages (macOS)
-      if: matrix.os == 'macOS-11'
+      if: matrix.os == 'macos-latest' || matrix.os == 'macos-15-intel'
       run: |
         brew install asciidoctor
 
@@ -95,7 +100,7 @@ jobs:
         targets: ${{ matrix.target }}
     
     - name: Cache Rust toolchain
-      uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
+      uses: Swatinem/rust-cache@v2
 
     - name: Use Cross
       shell: bash
@@ -115,7 +120,7 @@ jobs:
       run: ${{ env.CARGO }} build --verbose --release ${{ env.TARGET_FLAGS }} 
 
     - name: Strip release binary (linux and macos)
-      if: matrix.build == 'linux' || matrix.build == 'macos'
+      if: matrix.build == 'linux' || matrix.build == 'macos' || matrix.build == 'macos-intel'
       run: strip "target/${{ matrix.target }}/release/umi-transfer"
 
     # For now revert to the old image, since the new image does not regognise the format of the compiled binary.
