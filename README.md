@@ -40,7 +40,28 @@ This tool efficiently integrates these separate UMIs into the headers and can al
 
 ### Binary Installation
 
-Binaries for `umi-transfer` are available for most platforms and can be obtained from the [_Releases_ page on GitHub](https://github.com/SciLifeLab/umi-transfer/releases). Simply navigate to the releases and download the appropriate binary for your operating system. Once downloaded, you can place it in a directory of your choice and [optionally add the binary to your system's `$PATH`](https://astrobiomike.github.io/unix/modifying_your_path).
+Binaries for `umi-transfer` are available for most platforms and can be obtained from the [_Releases_ page on GitHub](https://github.com/SciLifeLab/umi-transfer/releases). Navigate to the releases and download the appropriate binary for your operating system. Once downloaded, you can place it in a directory of your choice and [optionally add the binary to your system's `$PATH`](https://astrobiomike.github.io/unix/modifying_your_path).
+
+<details>
+<summary><b>💡 Tip for macOS users encountering <i>"cannot be opened because the developer cannot be verified"</i></b>
+</summary>
+</br>
+<p>
+When you download binaries from the internet on macOS, the operating system places them under a "quarantine" to protect you from running potentially unsafe software. This often results in an error such as:
+</p>
+<blockquote>
+    "my-binary" cannot be opened because the developer cannot be verified.
+</blockquote>
+
+To allow running the `umi-transfer` binary (or any downloaded binary), you need to remove the quarantine attribute. You can do this from the command line with:
+
+```shell
+xattr -dr com.apple.quarantine ./path/to/umi-transfer
+```
+
+Replace `./path/to/umi-transfer` with the actual path to your downloaded binary. This command tells macOS to trust the binary and should resolve the warning so you can execute the file normally.
+
+</details>
 
 ### Bioconda
 
