@@ -101,6 +101,10 @@ jobs:
     
     - name: Cache Rust toolchain
       uses: Swatinem/rust-cache@v2
+      with:
+        # Without including the target in the cache key, the cache would be shared across targets.
+        # Each target will now maintain its own cache, avoiding cross-architecture conflicts.
+        key: ${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Use Cross
       shell: bash
@@ -123,7 +127,7 @@ jobs:
       if: matrix.build == 'linux' || matrix.build == 'macos' || matrix.build == 'macos-intel'
       run: strip "target/${{ matrix.target }}/release/umi-transfer"
 
-    # For now revert to the old image, since the new image does not regognise the format of the compiled binary.
+    # For now revert to the old image, since the new image does not recognise the format of the compiled binary.
     #- name: Strip release binary (arm)
     #  if: matrix.build == 'linux-arm'
     #  run: |
