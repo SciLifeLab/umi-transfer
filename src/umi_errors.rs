@@ -9,6 +9,8 @@ pub enum RuntimeErrors {
     ReadWriteError(bio::io::fastq::Record),
 }
 
+impl std::error::Error for RuntimeErrors {}
+
 impl std::fmt::Display for RuntimeErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

@@ -1,53 +1,10 @@
 use super::umi_errors::RuntimeErrors;
-use anyhow::{anyhow, Context, Result};
-use bio::io::fastq::{Reader as FastqReader, Record, Writer as FastqWriter};
+use anyhow::{anyhow, Result};
+use bio::io::fastq::{Record, Writer as FastqWriter};
 use dialoguer::{theme::ColorfulTheme, Confirm};
-use file_format::FileFormat;
 use gzp::{deflate::Gzip, par::compress::Compression, ZBuilder, ZWriter};
 use regex::Regex;
 use std::{fs, fs::File, io::BufWriter, path::Path, path::PathBuf};
-
-////////////////////////////////////////////////////////////////
-//  READ INPUT FILE
-////////////////////////////////////////////////////////////////
-
-// Enum for the two acceptable input file formats: '.fastq' and '.fastq.gz'
-pub enum InputFile {
-    Plain(std::io::BufReader<File>),
-    Compressed(Box<flate2::bufread::MultiGzDecoder<std::io::BufReader<File>>>),
-}
-
-// Implement read for InputFile enum
-impl std::io::Read for InputFile {
-    fn read(&mut self, into: &mut [u8]) -> std::io::Result<usize> {
-        match self {
-            InputFile::Plain(buf_reader) => buf_reader.read(into),
-            InputFile::Compressed(buf_reader) => buf_reader.read(into),
-        }
-    }
-}
-
-// Read input file to Reader. Automatically scans if input is compressed with file-format crate.
-pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufReader<InputFile>>> {
-    fs::metadata(path).map_err(|_e| anyhow!(RuntimeErrors::FileNotFound(Some(path.into()))))?;
-
-    let format = FileFormat::from_file(path).context("Failed to determine file format")?;
-    let reader: InputFile = match format {
-        FileFormat::Gzip => {
-            let file = File::open(path)
-                .map(std::io::BufReader::new)
-                .with_context(|| format!("Failed to open file: {:?}", path))?;
-            InputFile::Compressed(Box::new(flate2::bufread::MultiGzDecoder::new(file)))
-        }
-        _ => {
-            let file =
-                File::open(path).with_context(|| format!("Failed to open file: {:?}", path))?;
-            InputFile::Plain(std::io::BufReader::new(file))
-        }
-    };
-
-    Ok(FastqReader::new(reader))
-}
 
 ////////////////////////////////////////////////////////////////
 // WRITE OUTPUT FILE

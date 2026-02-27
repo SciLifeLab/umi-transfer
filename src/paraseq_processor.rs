@@ -20,22 +20,32 @@ fn to_process_error(e: impl std::fmt::Display) -> ProcessError {
 }
 
 /// Convert paraseq FASTQ RefRecord to bio Record for use with read_editing and OutputFile.
+/// Splits the header on the first space so id is the sequence id only (matching across r1/r2/umi).
 pub fn paraseq_record_to_bio(record: &RefRecord<'_>) -> Result<bio::io::fastq::Record> {
-    let id_raw = std::str::from_utf8(record.id())
+    let id_full = std::str::from_utf8(record.id())
         .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in record id: {}", e))?;
-    let id = if id_raw.starts_with('@') {
-        id_raw.to_string()
-    } else {
-        format!("@{}", id_raw)
+    let (id_part, desc_part) = match id_full.find(' ') {
+        Some(i) => (
+            id_full[..i].to_string(),
+            Some(id_full[i + 1..].to_string()),
+        ),
+        None => (
+            id_full.to_string(),
+            if record.sep().is_empty() {
+                None
+            } else {
+                Some(
+                    std::str::from_utf8(record.sep())
+                        .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in record description: {}", e))?
+                        .to_string(),
+                )
+            },
+        ),
     };
-    let desc = if record.sep().is_empty() {
-        None
+    let id = if id_part.starts_with('@') {
+        id_part
     } else {
-        Some(
-            std::str::from_utf8(record.sep())
-                .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in record description: {}", e))?
-                .to_string(),
-        )
+        format!("@{}", id_part)
     };
     let seq = record.seq().into_owned();
     let qual = record
@@ -44,7 +54,7 @@ pub fn paraseq_record_to_bio(record: &RefRecord<'_>) -> Result<bio::io::fastq::R
         .unwrap_or_else(Vec::new);
     Ok(bio::io::fastq::Record::with_attrs(
         &id,
-        desc.as_deref(),
+        desc_part.as_deref(),
         &seq,
         &qual,
     ))
