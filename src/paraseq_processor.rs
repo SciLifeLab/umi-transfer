@@ -266,6 +266,7 @@ pub fn collect_batches(
 }
 
 /// Write collected batches in order to the output file(s).
+/// Records within each batch are sorted by id so output is deterministic across runs.
 pub fn write_collected_batches(
     pending: &mut std::collections::BTreeMap<
         usize,
@@ -275,11 +276,13 @@ pub fn write_collected_batches(
     write_r2: &mut Option<crate::file_io::OutputFile>,
 ) -> anyhow::Result<()> {
     let mut next_id = 0usize;
-    while let Some((r1, r2_opt)) = pending.remove(&next_id) {
+    while let Some((mut r1, r2_opt)) = pending.remove(&next_id) {
+        r1.sort_by(|a, b| a.id().cmp(b.id()));
         for rec in r1 {
             write_r1.write_record(rec)?;
         }
-        if let (Some(ref mut w2), Some(r2)) = (write_r2.as_mut(), r2_opt) {
+        if let (Some(ref mut w2), Some(mut r2)) = (write_r2.as_mut(), r2_opt) {
+            r2.sort_by(|a, b| a.id().cmp(b.id()));
             for rec in r2 {
                 w2.write_record(rec)?;
             }
