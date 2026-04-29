@@ -1,6 +1,6 @@
 use super::umi_errors::RuntimeErrors;
+use crate::record::OwnedRecord;
 use anyhow::{anyhow, Result};
-use bio::io::fastq::{Record, Writer as FastqWriter};
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use gzp::{deflate::Gzip, par::compress::Compression, ZBuilder, ZWriter};
 use regex::Regex;
@@ -12,20 +12,17 @@ use std::{fs, fs::File, io::BufWriter, path::Path, path::PathBuf};
 
 // Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
 pub enum OutputFile {
-    Plain(FastqWriter<File>),
-    Compressed(FastqWriter<Box<dyn ZWriter<File>>>),
+    Plain(BufWriter<File>),
+    Compressed(Box<dyn ZWriter<File>>),
 }
 
 impl OutputFile {
-    pub fn write_record(&mut self, record: Record) -> Result<()> {
-        match self {
-            OutputFile::Plain(writer) => writer
-                .write(record.id(), record.desc(), record.seq(), record.qual())
-                .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
-            OutputFile::Compressed(writer) => writer
-                .write(record.id(), record.desc(), record.seq(), record.qual())
-                .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
-        }
+    pub fn write_record(&mut self, record: OwnedRecord) -> Result<()> {
+        let result = match self {
+            OutputFile::Plain(w) => record.write_to(w),
+            OutputFile::Compressed(w) => record.write_to(w),
+        };
+        result.map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record)))
     }
 }
 
@@ -47,11 +44,9 @@ pub fn create_writer(
             )
             .pin_threads(pin_at)
             .from_writer(file);
-        Ok(OutputFile::Compressed(FastqWriter::from_bufwriter(
-            BufWriter::new(writer),
-        )))
+        Ok(OutputFile::Compressed(writer))
     } else {
-        Ok(OutputFile::Plain(FastqWriter::new(file)))
+        Ok(OutputFile::Plain(BufWriter::new(file)))
     }
 }
 

@@ -6,7 +6,7 @@ pub enum RuntimeErrors {
     FileNotFound(Option<PathBuf>),
     OutputNotWriteable(Option<PathBuf>),
     ReadIDMismatch,
-    ReadWriteError(bio::io::fastq::Record),
+    ReadWriteError(crate::record::OwnedRecord),
 }
 
 impl std::error::Error for RuntimeErrors {}
@@ -41,7 +41,11 @@ impl std::fmt::Display for RuntimeErrors {
                 "IDs of UMI and read records mismatch. Please provide sorted files as input!"
             ),
             Self::ReadWriteError(record) => {
-                write!(f, "Failure to write read {} to file.", record.id())
+                write!(
+                    f,
+                    "Failure to write read {} to file.",
+                    String::from_utf8_lossy(record.id())
+                )
             }
         }
     }

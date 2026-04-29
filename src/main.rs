@@ -13,6 +13,7 @@ mod auxiliary;
 mod file_io;
 mod paraseq_processor;
 mod read_editing;
+mod record;
 mod umi_errors;
 mod umi_external;
 

@@ -10,6 +10,7 @@ use std::sync::mpsc::Sender;
 use std::sync::Arc;
 
 use crate::read_editing::{umi_to_record_header, umi_to_record_seq, UMIDestination};
+use crate::record::OwnedRecord;
 use crate::umi_errors::RuntimeErrors;
 
 fn to_process_error(e: impl std::fmt::Display) -> ProcessError {
@@ -19,56 +20,27 @@ fn to_process_error(e: impl std::fmt::Display) -> ProcessError {
     )))
 }
 
-/// Convert paraseq FASTQ RefRecord to bio Record for use with read_editing and OutputFile.
-/// Splits the header on the first space so id is the sequence id only (matching across r1/r2/umi).
-pub fn paraseq_record_to_bio(record: &RefRecord<'_>) -> Result<bio::io::fastq::Record> {
-    let id_full = std::str::from_utf8(record.id())
-        .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in record id: {}", e))?;
-    let (id_part, desc_part) = match id_full.find(' ') {
-        Some(i) => (
-            id_full[..i].to_string(),
-            Some(id_full[i + 1..].to_string()),
-        ),
-        None => (
-            id_full.to_string(),
-            if record.sep().is_empty() {
-                None
-            } else {
-                Some(
-                    std::str::from_utf8(record.sep())
-                        .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in record description: {}", e))?
-                        .to_string(),
-                )
-            },
-        ),
-    };
-    let id = if id_part.starts_with('@') {
-        id_part
-    } else {
-        format!("@{}", id_part)
-    };
-    let seq = record.seq().into_owned();
-    let qual = record
-        .qual()
-        .map(|q| q.to_vec())
-        .unwrap_or_else(Vec::new);
-    Ok(bio::io::fastq::Record::with_attrs(
-        &id,
-        desc_part.as_deref(),
-        &seq,
-        &qual,
-    ))
+/// Convert a paraseq FASTQ [`RefRecord`] to an [`OwnedRecord`].
+///
+/// The `head` field receives everything on the header line after the `@`
+/// (id + optional space + description), exactly as paraseq exposes it via `id()`.
+fn paraseq_record_to_owned(record: &RefRecord<'_>) -> OwnedRecord {
+    OwnedRecord::new(
+        record.id().to_vec(),
+        record.seq().into_owned(),
+        record.qual().unwrap_or(&[]).to_vec(),
+    )
 }
 
-/// Batch message for the writer thread: (batch_id, r1_records, r2_records for 3-file).
-pub type BatchMessage = (usize, Vec<bio::io::fastq::Record>, Option<Vec<bio::io::fastq::Record>>);
+/// Batch message for the writer thread: `(batch_id, r1_records, r2_records_for_3_file)`.
+pub type BatchMessage = (usize, Vec<OwnedRecord>, Option<Vec<OwnedRecord>>);
 
 /// 2-file processor: pairs (r1, ru), transfers UMI to r1, sends r1 batches to writer thread.
 #[derive(Clone)]
 pub struct UmiPairedProcessor {
     pub tx: Sender<BatchMessage>,
     pub batch_id: Arc<AtomicUsize>,
-    pub buffer_r1: Vec<bio::io::fastq::Record>,
+    pub buffer_r1: Vec<OwnedRecord>,
     pub target_position: UMIDestination,
     pub edit_nr: bool,
     pub delim: Option<String>,
@@ -101,24 +73,19 @@ impl PairedParallelProcessor<paraseq::fastq::RefRecord<'_>> for UmiPairedProcess
         record1: paraseq::fastq::RefRecord<'_>,
         record2: paraseq::fastq::RefRecord<'_>,
     ) -> Result<(), ProcessError> {
-        let r1_bio = paraseq_record_to_bio(&record1).map_err(to_process_error)?;
-        let ru_bio = paraseq_record_to_bio(&record2).map_err(to_process_error)?;
+        let r1 = paraseq_record_to_owned(&record1);
+        let ru = paraseq_record_to_owned(&record2);
 
-        if r1_bio.id() != ru_bio.id() {
+        if r1.id() != ru.id() {
             return Err(to_process_error(RuntimeErrors::ReadIDMismatch));
         }
 
         let read_nr = if self.edit_nr { Some(1) } else { None };
         let r1_out = match self.target_position {
-            UMIDestination::Header => umi_to_record_header(
-                r1_bio,
-                ru_bio.seq(),
-                self.delim.as_ref(),
-                read_nr,
-            ),
-            UMIDestination::Inline => {
-                umi_to_record_seq(r1_bio, ru_bio.seq(), ru_bio.qual(), read_nr)
+            UMIDestination::Header => {
+                umi_to_record_header(r1, &ru.seq, self.delim.as_ref(), read_nr)
             }
+            UMIDestination::Inline => umi_to_record_seq(r1, &ru.seq, &ru.qual, read_nr),
         }
         .map_err(to_process_error)?;
 
@@ -147,8 +114,8 @@ impl PairedParallelProcessor<paraseq::fastq::RefRecord<'_>> for UmiPairedProcess
 pub struct UmiMultiProcessor {
     pub tx: Sender<BatchMessage>,
     pub batch_id: Arc<AtomicUsize>,
-    pub buffer_r1: Vec<bio::io::fastq::Record>,
-    pub buffer_r2: Vec<bio::io::fastq::Record>,
+    pub buffer_r1: Vec<OwnedRecord>,
+    pub buffer_r2: Vec<OwnedRecord>,
     pub target_position: UMIDestination,
     pub edit_nr: bool,
     pub delim: Option<String>,
@@ -184,25 +151,25 @@ impl MultiParallelProcessor<paraseq::fastq::RefRecord<'_>> for UmiMultiProcessor
         if records.len() != 3 {
             return Err(ProcessError::MultiRecordMismatch(records.len()));
         }
-        let r1_bio = paraseq_record_to_bio(&records[0]).map_err(to_process_error)?;
-        let r2_bio = paraseq_record_to_bio(&records[1]).map_err(to_process_error)?;
-        let ru_bio = paraseq_record_to_bio(&records[2]).map_err(to_process_error)?;
+        let r1 = paraseq_record_to_owned(&records[0]);
+        let r2 = paraseq_record_to_owned(&records[1]);
+        let ru = paraseq_record_to_owned(&records[2]);
 
-        if r1_bio.id() != ru_bio.id() || r2_bio.id() != ru_bio.id() {
+        if r1.id() != ru.id() || r2.id() != ru.id() {
             return Err(to_process_error(RuntimeErrors::ReadIDMismatch));
         }
 
         let r1_out = match self.target_position {
             UMIDestination::Header => umi_to_record_header(
-                r1_bio,
-                ru_bio.seq(),
+                r1,
+                &ru.seq,
                 self.delim.as_ref(),
                 if self.edit_nr { Some(1) } else { None },
             ),
             UMIDestination::Inline => umi_to_record_seq(
-                r1_bio,
-                ru_bio.seq(),
-                ru_bio.qual(),
+                r1,
+                &ru.seq,
+                &ru.qual,
                 if self.edit_nr { Some(1) } else { None },
             ),
         }
@@ -210,15 +177,15 @@ impl MultiParallelProcessor<paraseq::fastq::RefRecord<'_>> for UmiMultiProcessor
 
         let r2_out = match self.target_position {
             UMIDestination::Header => umi_to_record_header(
-                r2_bio,
-                ru_bio.seq(),
+                r2,
+                &ru.seq,
                 self.delim.as_ref(),
                 if self.edit_nr { Some(2) } else { None },
             ),
             UMIDestination::Inline => umi_to_record_seq(
-                r2_bio,
-                ru_bio.seq(),
-                ru_bio.qual(),
+                r2,
+                &ru.seq,
+                &ru.qual,
                 if self.edit_nr { Some(2) } else { None },
             ),
         }
@@ -246,19 +213,14 @@ impl MultiParallelProcessor<paraseq::fastq::RefRecord<'_>> for UmiMultiProcessor
     }
 }
 
-/// Run the writer loop: receive batches and return them in a BTreeMap for the main thread to write.
-/// The main thread holds OutputFile (not Send) and writes after processing is done.
+/// Receive all batch messages from the channel and collect them into a `BTreeMap` ordered by
+/// batch id, ready for in-order writing by the main thread.
 pub fn collect_batches(
     rx: std::sync::mpsc::Receiver<BatchMessage>,
-) -> std::collections::BTreeMap<
-    usize,
-    (Vec<bio::io::fastq::Record>, Option<Vec<bio::io::fastq::Record>>),
-> {
+) -> std::collections::BTreeMap<usize, (Vec<OwnedRecord>, Option<Vec<OwnedRecord>>)> {
     use std::collections::BTreeMap;
-    let mut pending: BTreeMap<
-        usize,
-        (Vec<bio::io::fastq::Record>, Option<Vec<bio::io::fastq::Record>>),
-    > = BTreeMap::new();
+    let mut pending: BTreeMap<usize, (Vec<OwnedRecord>, Option<Vec<OwnedRecord>>)> =
+        BTreeMap::new();
     for msg in rx {
         pending.insert(msg.0, (msg.1, msg.2));
     }
@@ -268,10 +230,7 @@ pub fn collect_batches(
 /// Write collected batches in order to the output file(s).
 /// Records within each batch are sorted by id so output is deterministic across runs.
 pub fn write_collected_batches(
-    pending: &mut std::collections::BTreeMap<
-        usize,
-        (Vec<bio::io::fastq::Record>, Option<Vec<bio::io::fastq::Record>>),
-    >,
+    pending: &mut std::collections::BTreeMap<usize, (Vec<OwnedRecord>, Option<Vec<OwnedRecord>>)>,
     write_r1: &mut crate::file_io::OutputFile,
     write_r2: &mut Option<crate::file_io::OutputFile>,
 ) -> anyhow::Result<()> {
