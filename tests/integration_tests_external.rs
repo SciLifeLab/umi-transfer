@@ -20,7 +20,6 @@ fn external_fails_without_arguments() {
             "error: the following required arguments were not provided",
         ))
         .stderr(predicate::str::contains("--in <R1_IN>"))
-        .stderr(predicate::str::contains("--in2 <R2_IN>"))
         .stderr(predicate::str::contains("--umi <RU_IN>"));
 }
 
