@@ -1,5 +1,5 @@
 use assert_fs::prelude::*;
-use auxiliary::{verify_file_binary, verify_file_contents};
+use auxiliary::{verify_file_binary, verify_file_contents, verify_gzip_contents};
 use predicates::prelude::*;
 use std::error::Error;
 
@@ -373,11 +373,11 @@ fn external_produces_correct_compressed_output_thread_limit_header() -> TestResu
         .assert(predicate::path::exists());
 
     let reference = test_output.unwrap();
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
         &reference.header_compressed_read1,
     )?;
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
         &reference.header_compressed_read2,
     )?;
@@ -412,11 +412,11 @@ fn external_produces_correct_compressed_output_thread_limit_inline() -> TestResu
         .assert(predicate::path::exists());
 
     let reference = test_output.unwrap();
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
         &reference.inline_compressed_read1,
     )?;
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
         &reference.inline_compressed_read2,
     )?;

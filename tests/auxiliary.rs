@@ -3,6 +3,7 @@ use assert_cmd::cargo::cargo_bin_cmd;
 use assert_cmd::Command;
 use assert_fs::fixture::{NamedTempFile, TempDir};
 use assert_fs::prelude::*;
+use flate2::read::MultiGzDecoder;
 use predicates::prelude::*;
 use std::io::Read;
 use std::path::PathBuf;
@@ -141,6 +142,40 @@ pub fn verify_file_contents(test_file: &PathBuf, reference_file: &PathBuf) -> Re
     let predicate_fn = predicate::str::diff(reference_file_content);
 
     if predicate_fn.eval(&test_file_content) {
+        Ok(true)
+    } else {
+        Err(anyhow!(
+            "{} and {} did not match!",
+            reference_file.file_name().unwrap().to_string_lossy(),
+            test_file.file_name().unwrap().to_string_lossy()
+        ))
+    }
+}
+
+// Decompress a gzip file (including multi-member streams produced by parallel compressors)
+// and return its contents as a String.
+fn read_gzip_contents(path: &PathBuf) -> Result<String> {
+    let file = std::fs::File::open(path)
+        .map_err(|err| anyhow!("Failed to open gzip file: {}", err))?;
+    let mut decoder = MultiGzDecoder::new(file);
+    let mut contents = String::new();
+    decoder
+        .read_to_string(&mut contents)
+        .map_err(|err| anyhow!("Failed to decompress gzip file: {}", err))?;
+    Ok(contents)
+}
+
+// Compare two gzip files by their decompressed content.
+// This avoids false failures caused by parallel gzip producing different binary streams
+// for the same data depending on the number of compression threads.
+#[allow(dead_code)]
+pub fn verify_gzip_contents(test_file: &PathBuf, reference_file: &PathBuf) -> Result<bool> {
+    let test_contents = read_gzip_contents(test_file)?;
+    let reference_contents = read_gzip_contents(reference_file)?;
+
+    let predicate_fn = predicate::str::diff(reference_contents);
+
+    if predicate_fn.eval(&test_contents) {
         Ok(true)
     } else {
         Err(anyhow!(

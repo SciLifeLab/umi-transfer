@@ -1186,6 +1186,7 @@ dependencies = [
  "assert_fs",
  "clap",
  "dialoguer",
+ "flate2",
  "gzp",
  "itertools",
  "owo-colors",
