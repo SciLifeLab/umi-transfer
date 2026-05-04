@@ -229,14 +229,17 @@ pub fn collect_batches(
 
 /// Write collected batches in order to the output file(s).
 /// Records within each batch are sorted by id so output is deterministic across runs.
+/// Returns the total number of records written (counted from R1, which always equals the record count).
 pub fn write_collected_batches(
     pending: &mut std::collections::BTreeMap<usize, (Vec<OwnedRecord>, Option<Vec<OwnedRecord>>)>,
     write_r1: &mut crate::file_io::OutputFile,
     write_r2: &mut Option<crate::file_io::OutputFile>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<usize> {
     let mut next_id = 0usize;
+    let mut total_records = 0usize;
     while let Some((mut r1, r2_opt)) = pending.remove(&next_id) {
         r1.sort_by(|a, b| a.id().cmp(b.id()));
+        total_records += r1.len();
         for rec in r1 {
             write_r1.write_record(rec)?;
         }
@@ -248,5 +251,5 @@ pub fn write_collected_batches(
         }
         next_id += 1;
     }
-    Ok(())
+    Ok(total_records)
 }

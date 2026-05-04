@@ -179,9 +179,9 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         process_result.map_err(process_error_to_anyhow)?;
 
         let mut write_r2 = Some(write_r2);
-        write_collected_batches(&mut pending, &mut write_r1, &mut write_r2)?;
+        let total_records = write_collected_batches(&mut pending, &mut write_r1, &mut write_r2)?;
 
-        println!("Processed records (3-file mode)");
+        println!("Processed {total_records} records (3-file mode)");
         Ok(0)
     } else {
         // 2-file mode: r1 + ru only
@@ -227,9 +227,9 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         process_result.map_err(process_error_to_anyhow)?;
 
         let mut write_r2 = None;
-        write_collected_batches(&mut pending, &mut write_r1, &mut write_r2)?;
+        let total_records = write_collected_batches(&mut pending, &mut write_r1, &mut write_r2)?;
 
-        println!("Processed records (2-file mode)");
+        println!("Processed {total_records} records (2-file mode)");
         Ok(0)
     }
 }
