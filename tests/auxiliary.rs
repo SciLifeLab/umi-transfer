@@ -155,8 +155,8 @@ pub fn verify_file_contents(test_file: &PathBuf, reference_file: &PathBuf) -> Re
 // Decompress a gzip file (including multi-member streams produced by parallel compressors)
 // and return its contents as a String.
 fn read_gzip_contents(path: &PathBuf) -> Result<String> {
-    let file = std::fs::File::open(path)
-        .map_err(|err| anyhow!("Failed to open gzip file: {}", err))?;
+    let file =
+        std::fs::File::open(path).map_err(|err| anyhow!("Failed to open gzip file: {}", err))?;
     let mut decoder = MultiGzDecoder::new(file);
     let mut contents = String::new();
     decoder

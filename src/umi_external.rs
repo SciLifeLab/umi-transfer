@@ -1,13 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use paraseq::fastq;
-use paraseq::parallel::{ProcessError, ParallelReader};
+use paraseq::parallel::{ParallelReader, ProcessError};
 use std::path::PathBuf;
 
 use super::file_io;
-use crate::auxiliary::{threads_available, threads_per_task};
+use crate::auxiliary::{compute_thread_budgets, threads_available};
 use crate::paraseq_processor::{
-    collect_batches, write_collected_batches, BatchMessage, UmiMultiProcessor, UmiPairedProcessor,
+    stream_write_batches, BatchMessage, UmiMultiProcessor, UmiPairedProcessor,
 };
 
 #[derive(Debug, Parser)]
@@ -103,15 +103,13 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     let num_threads = args.num_threads.unwrap_or_else(threads_available);
 
     let num_outputs = if args.r2_in.is_some() { 2 } else { 1 };
-    let threads_per_task = threads_per_task(num_threads, num_outputs);
+    let (paraseq_n, gzp_per) = compute_thread_budgets(num_threads, num_outputs);
 
     // Open paraseq readers (handles plain and gzipped via niffler)
-    let reader_r1 = fastq::Reader::from_path(&args.r1_in).with_context(|| {
-        format!("Failed to open R1 input: {}", args.r1_in.display())
-    })?;
-    let reader_ru = fastq::Reader::from_path(&args.ru_in).with_context(|| {
-        format!("Failed to open UMI input: {}", args.ru_in.display())
-    })?;
+    let reader_r1 = fastq::Reader::from_path(&args.r1_in)
+        .with_context(|| format!("Failed to open R1 input: {}", args.r1_in.display()))?;
+    let reader_ru = fastq::Reader::from_path(&args.ru_in)
+        .with_context(|| format!("Failed to open UMI input: {}", args.ru_in.display()))?;
 
     if let Some(ref r2_path) = args.r2_in {
         // 3-file mode: r1 + r2 + ru
@@ -133,30 +131,13 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         println!("Output 1 will be saved to: {}", output1.to_string_lossy());
         println!("Output 2 will be saved to: {}", output2.to_string_lossy());
 
-        let mut write_r1 = file_io::create_writer(
-            output1,
-            &args.gzip,
-            &threads_per_task,
-            &args.compression_level,
-            None,
-        )?;
-        let write_r2 = file_io::create_writer(
-            output2,
-            &args.gzip,
-            &threads_per_task,
-            &args.compression_level,
-            None,
-        )?;
+        let mut write_r1 =
+            file_io::create_writer(output1, &args.gzip, &gzp_per, &args.compression_level, None)?;
+        let write_r2 =
+            file_io::create_writer(output2, &args.gzip, &gzp_per, &args.compression_level, None)?;
 
         let (tx, rx) = std::sync::mpsc::channel::<BatchMessage>();
         let batch_id = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-
-        // Collector thread: only receives batches (Send data) and sends back the map.
-        // Main thread keeps OutputFile (not Send) and does the actual writing.
-        let (result_tx, result_rx) = std::sync::mpsc::channel();
-        let collector_handle = std::thread::spawn(move || {
-            let _ = result_tx.send(collect_batches(rx));
-        });
 
         let mut processor = UmiMultiProcessor::new(
             tx,
@@ -167,19 +148,26 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         );
 
         println!("Transferring UMIs to records (paired R1+R2)...");
-        let process_result = reader_r1.process_parallel_multi(
-            vec![reader_r2, reader_ru],
-            &mut processor,
-            num_threads,
-        );
-        drop(processor);
-        let mut pending = result_rx.recv().unwrap_or_default();
-        let _ = collector_handle.join();
 
-        process_result.map_err(process_error_to_anyhow)?;
+        // Spawn reading to a background thread so the main thread can stream-write
+        // concurrently, keeping only O(paraseq_n × batch_size) records in memory at once.
+        let reader_handle = std::thread::spawn(move || {
+            let result = reader_r1.process_parallel_multi(
+                vec![reader_r2, reader_ru],
+                &mut processor,
+                paraseq_n,
+            );
+            drop(processor); // closes the Sender, signals stream_write_batches to finish
+            result
+        });
 
         let mut write_r2 = Some(write_r2);
-        let total_records = write_collected_batches(&mut pending, &mut write_r1, &mut write_r2)?;
+        let total_records = stream_write_batches(rx, &mut write_r1, &mut write_r2)?;
+
+        reader_handle
+            .join()
+            .map_err(|_| anyhow!("Reader thread panicked"))?
+            .map_err(process_error_to_anyhow)?;
 
         println!("Processed {total_records} records (3-file mode)");
         Ok(0)
@@ -193,21 +181,11 @@ pub fn run(args: OptsExternal) -> Result<i32> {
 
         println!("Output will be saved to: {}", output1.to_string_lossy());
 
-        let mut write_r1 = file_io::create_writer(
-            output1,
-            &args.gzip,
-            &threads_per_task,
-            &args.compression_level,
-            None,
-        )?;
+        let mut write_r1 =
+            file_io::create_writer(output1, &args.gzip, &gzp_per, &args.compression_level, None)?;
 
         let (tx, rx) = std::sync::mpsc::channel::<BatchMessage>();
         let batch_id = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-
-        let (result_tx, result_rx) = std::sync::mpsc::channel();
-        let collector_handle = std::thread::spawn(move || {
-            let _ = result_tx.send(collect_batches(rx));
-        });
 
         let mut processor = UmiPairedProcessor::new(
             tx,
@@ -218,16 +196,20 @@ pub fn run(args: OptsExternal) -> Result<i32> {
         );
 
         println!("Transferring UMIs to records (R1 + UMI only)...");
-        let process_result = reader_r1
-            .process_parallel_paired(reader_ru, &mut processor, num_threads);
-        drop(processor);
-        let mut pending = result_rx.recv().unwrap_or_default();
-        let _ = collector_handle.join();
 
-        process_result.map_err(process_error_to_anyhow)?;
+        let reader_handle = std::thread::spawn(move || {
+            let result = reader_r1.process_parallel_paired(reader_ru, &mut processor, paraseq_n);
+            drop(processor);
+            result
+        });
 
         let mut write_r2 = None;
-        let total_records = write_collected_batches(&mut pending, &mut write_r1, &mut write_r2)?;
+        let total_records = stream_write_batches(rx, &mut write_r1, &mut write_r2)?;
+
+        reader_handle
+            .join()
+            .map_err(|_| anyhow!("Reader thread panicked"))?
+            .map_err(process_error_to_anyhow)?;
 
         println!("Processed {total_records} records (2-file mode)");
         Ok(0)

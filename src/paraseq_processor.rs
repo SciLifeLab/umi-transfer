@@ -213,43 +213,41 @@ impl MultiParallelProcessor<paraseq::fastq::RefRecord<'_>> for UmiMultiProcessor
     }
 }
 
-/// Receive all batch messages from the channel and collect them into a `BTreeMap` ordered by
-/// batch id, ready for in-order writing by the main thread.
-pub fn collect_batches(
+/// Receive batch messages from the channel and write them to the output file(s) in order,
+/// maintaining a small pending queue for out-of-order arrivals.
+///
+/// Because each batch is written and freed as soon as it is the next in sequence, memory
+/// usage is bounded by `paraseq_threads × batch_size` records rather than the total file
+/// size.  At most `paraseq_threads` batches sit in `pending` simultaneously.
+pub fn stream_write_batches(
     rx: std::sync::mpsc::Receiver<BatchMessage>,
-) -> std::collections::BTreeMap<usize, (Vec<OwnedRecord>, Option<Vec<OwnedRecord>>)> {
-    use std::collections::BTreeMap;
-    let mut pending: BTreeMap<usize, (Vec<OwnedRecord>, Option<Vec<OwnedRecord>>)> =
-        BTreeMap::new();
-    for msg in rx {
-        pending.insert(msg.0, (msg.1, msg.2));
-    }
-    pending
-}
-
-/// Write collected batches in order to the output file(s).
-/// Records within each batch are sorted by id so output is deterministic across runs.
-/// Returns the total number of records written (counted from R1, which always equals the record count).
-pub fn write_collected_batches(
-    pending: &mut std::collections::BTreeMap<usize, (Vec<OwnedRecord>, Option<Vec<OwnedRecord>>)>,
     write_r1: &mut crate::file_io::OutputFile,
     write_r2: &mut Option<crate::file_io::OutputFile>,
 ) -> anyhow::Result<usize> {
-    let mut next_id = 0usize;
+    use std::collections::BTreeMap;
+    let mut pending: BTreeMap<usize, (Vec<OwnedRecord>, Option<Vec<OwnedRecord>>)> =
+        BTreeMap::new();
+    let mut next_id: usize = 0;
     let mut total_records = 0usize;
-    while let Some((mut r1, r2_opt)) = pending.remove(&next_id) {
-        r1.sort_by(|a, b| a.id().cmp(b.id()));
-        total_records += r1.len();
-        for rec in r1 {
-            write_r1.write_record(rec)?;
-        }
-        if let (Some(ref mut w2), Some(mut r2)) = (write_r2.as_mut(), r2_opt) {
-            r2.sort_by(|a, b| a.id().cmp(b.id()));
-            for rec in r2 {
-                w2.write_record(rec)?;
+
+    for (id, r1, r2_opt) in rx {
+        pending.insert(id, (r1, r2_opt));
+
+        // Drain every consecutive batch that is now ready to write.
+        while let Some((mut r1, r2_opt)) = pending.remove(&next_id) {
+            r1.sort_by(|a, b| a.id().cmp(b.id()));
+            total_records += r1.len();
+            for rec in r1 {
+                write_r1.write_record(rec)?;
             }
+            if let (Some(ref mut w2), Some(mut r2)) = (write_r2.as_mut(), r2_opt) {
+                r2.sort_by(|a, b| a.id().cmp(b.id()));
+                for rec in r2 {
+                    w2.write_record(rec)?;
+                }
+            }
+            next_id += 1;
         }
-        next_id += 1;
     }
     Ok(total_records)
 }

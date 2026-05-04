@@ -223,11 +223,11 @@ fn external_produces_correct_compressed_output_header() -> TestResult {
         .assert(predicate::path::exists());
 
     let reference = test_output.unwrap();
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
         &reference.header_compressed_read1,
     )?;
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
         &reference.header_compressed_read2,
     )?;
@@ -260,11 +260,11 @@ fn external_produces_correct_compressed_output_inline() -> TestResult {
         .assert(predicate::path::exists());
 
     let reference = test_output.unwrap();
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
         &reference.inline_compressed_read1,
     )?;
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
         &reference.inline_compressed_read2,
     )?;
@@ -297,11 +297,11 @@ fn external_produces_correct_compressed_output_mod_compression_level_header() ->
         .assert(predicate::path::exists());
 
     let reference = test_output.unwrap();
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
         &reference.header_more_compressed_read1,
     )?;
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
         &reference.header_more_compressed_read2,
     )?;
@@ -336,11 +336,11 @@ fn external_produces_correct_compressed_output_mod_compression_level_inline() ->
         .assert(predicate::path::exists());
 
     let reference = test_output.unwrap();
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read1_with_UMIs.fq.gz").to_path_buf(),
         &reference.inline_more_compressed_read1,
     )?;
-    verify_file_binary(
+    verify_gzip_contents(
         &temp_dir.child("read2_with_UMIs.fq.gz").to_path_buf(),
         &reference.inline_more_compressed_read2,
     )?;
