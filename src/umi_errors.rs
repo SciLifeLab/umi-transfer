@@ -3,7 +3,6 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub enum RuntimeErrors {
     FileExists(Option<PathBuf>),
-    FileNotFound(Option<PathBuf>),
     OutputNotWriteable(Option<PathBuf>),
     ReadIDMismatch,
     ReadWriteError(crate::record::OwnedRecord),
@@ -22,12 +21,6 @@ impl std::fmt::Display for RuntimeErrors {
                 "Output file {} exists, but must not be overwritten.",
                 path.display()
             ),
-            Self::FileNotFound(None) => {
-                write!(f, "Specified file does not exist or is not readable!")
-            }
-            Self::FileNotFound(Some(path)) => {
-                write!(f, "{} does not exist or is not readable!", path.display())
-            }
             Self::OutputNotWriteable(None) => {
                 write!(f, "Output file is missing or not writeable.")
             }
