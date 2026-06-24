@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
-use itertools::izip;
+use seq_io::fastq::Record;
 use std::path::PathBuf;
 
 use super::file_io;
 use crate::auxiliary::{threads_available, threads_per_task};
-use crate::read_editing::{umi_to_record_header, umi_to_record_seq, UMIDestination};
+use crate::read_editing::{read_id, write_umi_in_header, write_umi_inline, UMIDestination};
 use crate::umi_errors::RuntimeErrors;
 #[derive(Debug, Parser)]
 pub struct OptsExternal {
@@ -117,30 +117,24 @@ pub fn run(args: OptsExternal) -> Result<i32> {
     let threads_per_task = threads_per_task(num_threads, 2);
 
     // Read FastQ records from input files
-    let r1 = file_io::read_fastq(&args.r1_in)
-        .with_context(|| {
-            format!(
-                "Failed to read records from {}",
-                &args.r1_in.to_string_lossy()
-            )
-        })?
-        .records();
-    let r2 = file_io::read_fastq(&args.r2_in)
-        .with_context(|| {
-            format!(
-                "Failed to read records from {}",
-                &args.r2_in.to_string_lossy()
-            )
-        })?
-        .records();
-    let ru = file_io::read_fastq(&args.ru_in)
-        .with_context(|| {
-            format!(
-                "Failed to read records from {}",
-                &args.ru_in.to_string_lossy()
-            )
-        })?
-        .records();
+    let mut r1 = file_io::read_fastq(&args.r1_in).with_context(|| {
+        format!(
+            "Failed to read records from {}",
+            &args.r1_in.to_string_lossy()
+        )
+    })?;
+    let mut r2 = file_io::read_fastq(&args.r2_in).with_context(|| {
+        format!(
+            "Failed to read records from {}",
+            &args.r2_in.to_string_lossy()
+        )
+    })?;
+    let mut ru = file_io::read_fastq(&args.ru_in).with_context(|| {
+        format!(
+            "Failed to read records from {}",
+            &args.ru_in.to_string_lossy()
+        )
+    })?;
 
     // If output paths have been specified, check if the are ok to use or use prefix constructors.
     let mut output1: PathBuf = args
@@ -181,51 +175,78 @@ pub fn run(args: OptsExternal) -> Result<i32> {
 
     println!("Transferring UMIs to records...");
 
-    // Iterate over records in input files
-    for (r1_rec_res, ru_rec_res, r2_rec_res) in izip!(r1, ru, r2) {
-        let r1_rec = r1_rec_res?;
-        let r2_rec = r2_rec_res?;
-        let ru_rec = ru_rec_res?;
+    // Resolve the UMI delimiter once (defaults to ":").
+    let delim = args.delim.as_deref().unwrap_or(":").as_bytes();
+    let nr1 = if edit_nr { Some(1) } else { None };
+    let nr2 = if edit_nr { Some(2) } else { None };
 
-        // Step counter
+    // Iterate over the three inputs in lockstep. seq_io lends each record as a
+    // borrow into its reader's buffer, so we splice and write it within the same
+    // iteration, before the next read overwrites the buffer. No record is owned.
+    loop {
+        let (rec1, rec2, recu) = match (r1.next(), r2.next(), ru.next()) {
+            (Some(rec1), Some(rec2), Some(recu)) => (rec1?, rec2?, recu?),
+            (None, None, None) => break,
+            _ => return Err(anyhow!(RuntimeErrors::RecordCountMismatch)),
+        };
+
         counter += 1;
 
-        if r1_rec.id().eq(ru_rec.id()) {
-            // Write to Output file
-            let read_nr = if edit_nr { Some(1) } else { None };
-
-            let r1_rec = match args.target_position {
-                UMIDestination::Header => {
-                    umi_to_record_header(r1_rec, ru_rec.seq(), args.delim.as_ref(), read_nr)
-                }
-                UMIDestination::Inline => {
-                    umi_to_record_seq(r1_rec, ru_rec.seq(), ru_rec.qual(), read_nr)
-                }
-            }?;
-
-            write_output_r1.write_record(r1_rec)?;
-        } else {
+        // The read and its UMI must be the same record. seq_io has already
+        // validated the FASTQ framing; this checks the ids line up.
+        let umi_id = read_id(recu.head());
+        if read_id(rec1.head()) != umi_id || read_id(rec2.head()) != umi_id {
             return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
         }
 
-        if r2_rec.id().eq(ru_rec.id()) {
-            // Write to Output file
-            let read_nr = if edit_nr { Some(2) } else { None };
-
-            let r2_rec = match args.target_position {
-                UMIDestination::Header => {
-                    umi_to_record_header(r2_rec, ru_rec.seq(), args.delim.as_ref(), read_nr)
-                }
-                UMIDestination::Inline => {
-                    umi_to_record_seq(r2_rec, ru_rec.seq(), ru_rec.qual(), read_nr)
-                }
-            }?;
-
-            write_output_r2.write_record(r2_rec)?;
-        } else {
-            return Err(anyhow!(RuntimeErrors::ReadIDMismatch));
+        match args.target_position {
+            UMIDestination::Header => {
+                write_umi_in_header(
+                    &mut write_output_r1,
+                    rec1.head(),
+                    rec1.seq(),
+                    rec1.qual(),
+                    recu.seq(),
+                    delim,
+                    nr1,
+                )?;
+                write_umi_in_header(
+                    &mut write_output_r2,
+                    rec2.head(),
+                    rec2.seq(),
+                    rec2.qual(),
+                    recu.seq(),
+                    delim,
+                    nr2,
+                )?;
+            }
+            UMIDestination::Inline => {
+                write_umi_inline(
+                    &mut write_output_r1,
+                    rec1.head(),
+                    rec1.seq(),
+                    rec1.qual(),
+                    recu.seq(),
+                    recu.qual(),
+                    nr1,
+                )?;
+                write_umi_inline(
+                    &mut write_output_r2,
+                    rec2.head(),
+                    rec2.seq(),
+                    rec2.qual(),
+                    recu.seq(),
+                    recu.qual(),
+                    nr2,
+                )?;
+            }
         }
     }
+
+    // Flush and finalize (gzip footer) before reporting success.
+    write_output_r1.finish()?;
+    write_output_r2.finish()?;
+
     println!("Processed {:?} records", counter);
     Ok(counter)
 }
