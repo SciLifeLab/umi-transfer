@@ -1,11 +1,16 @@
 use super::umi_errors::RuntimeErrors;
 use anyhow::{anyhow, Context, Result};
-use bio::io::fastq::{Reader as FastqReader, Record, Writer as FastqWriter};
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use file_format::FileFormat;
 use gzp::{deflate::Gzip, par::compress::Compression, ZBuilder, ZWriter};
 use regex::Regex;
-use std::{fs, fs::File, io::BufWriter, path::Path, path::PathBuf};
+use std::{
+    fs,
+    fs::File,
+    io::{BufWriter, Write},
+    path::Path,
+    path::PathBuf,
+};
 
 ////////////////////////////////////////////////////////////////
 //  READ INPUT FILE
@@ -28,7 +33,7 @@ impl std::io::Read for InputFile {
 }
 
 // Read input file to Reader. Automatically scans if input is compressed with file-format crate.
-pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufReader<InputFile>>> {
+pub fn read_fastq(path: &PathBuf) -> Result<seq_io::fastq::Reader<InputFile>> {
     fs::metadata(path).map_err(|_e| anyhow!(RuntimeErrors::FileNotFound(Some(path.into()))))?;
 
     let format = FileFormat::from_file(path).context("Failed to determine file format")?;
@@ -46,31 +51,65 @@ pub fn read_fastq(path: &PathBuf) -> Result<bio::io::fastq::Reader<std::io::BufR
         }
     };
 
-    Ok(FastqReader::new(reader))
+    Ok(seq_io::fastq::Reader::new(reader))
 }
 
 ////////////////////////////////////////////////////////////////
 // WRITE OUTPUT FILE
 ////////////////////////////////////////////////////////////////
 
-// Enum for the two accepted output formats, '.fastq' and '.fastq.gz'
+// The two accepted output formats, '.fastq' and '.fastq.gz', as buffered byte
+// sinks that records are written into as raw segments.
 pub enum OutputFile {
-    Plain(FastqWriter<File>),
-    Compressed(FastqWriter<Box<dyn ZWriter<File>>>),
+    Plain(BufWriter<File>),
+    Compressed(BufWriter<Box<dyn ZWriter<File>>>),
 }
 
 impl OutputFile {
-    pub fn write_record(&mut self, record: Record) -> Result<()> {
+    /// Flush the buffer and, for gzip output, finalize the stream (writing the
+    /// footer). gzp needs an explicit `finish`; relying on `Drop` can silently
+    /// truncate the output.
+    pub fn finish(self) -> Result<()> {
         match self {
-            OutputFile::Plain(writer) => writer
-                .write(record.id(), record.desc(), record.seq(), record.qual())
-                .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
-            OutputFile::Compressed(writer) => writer
-                .write(record.id(), record.desc(), record.seq(), record.qual())
-                .map_err(|_| anyhow!(RuntimeErrors::ReadWriteError(record))),
+            OutputFile::Plain(mut writer) => {
+                writer.flush().context("failed to flush output")?;
+                Ok(())
+            }
+            OutputFile::Compressed(writer) => {
+                let mut inner = writer
+                    .into_inner()
+                    .map_err(|e| anyhow!("failed to flush output buffer: {e}"))?;
+                inner
+                    .finish()
+                    .map_err(|e| anyhow!("failed to finalize gzip stream: {e}"))?;
+                Ok(())
+            }
         }
     }
 }
+
+impl Write for OutputFile {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        match self {
+            OutputFile::Plain(writer) => writer.write(buf),
+            OutputFile::Compressed(writer) => writer.write(buf),
+        }
+    }
+
+    #[inline]
+    fn flush(&mut self) -> std::io::Result<()> {
+        match self {
+            OutputFile::Plain(writer) => writer.flush(),
+            OutputFile::Compressed(writer) => writer.flush(),
+        }
+    }
+}
+
+/// Output buffer size: an arbitrary power of two, just large enough to batch the
+/// many small per-record segment writes into infrequent large writes to the
+/// file or compressor.
+const OUTPUT_BUFFER_SIZE: usize = 256 * 1024;
 
 pub fn create_writer(
     path: PathBuf,
@@ -90,11 +129,15 @@ pub fn create_writer(
             )
             .pin_threads(pin_at)
             .from_writer(file);
-        Ok(OutputFile::Compressed(FastqWriter::from_bufwriter(
-            BufWriter::new(writer),
+        Ok(OutputFile::Compressed(BufWriter::with_capacity(
+            OUTPUT_BUFFER_SIZE,
+            writer,
         )))
     } else {
-        Ok(OutputFile::Plain(FastqWriter::new(file)))
+        Ok(OutputFile::Plain(BufWriter::with_capacity(
+            OUTPUT_BUFFER_SIZE,
+            file,
+        )))
     }
 }
 

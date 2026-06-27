@@ -7,9 +7,8 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.51", features = ["derive"] }
-bio = "3.0.0"
+seq_io = "0.3.4"
 flate2 = "1.1.5"
-itertools = "0.14.0"
 file-format = "0.28.0"
 anyhow = "1.0.100"
 dialoguer = "0.12.0"
